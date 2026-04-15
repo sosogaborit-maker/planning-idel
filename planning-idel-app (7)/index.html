@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Planning Infirmier</title>
+  <meta name="theme-color" content="#0F6E56" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Planning IDEL" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal: #0F6E56; --teal-light: #E1F5EE; --teal-dark: #085041;
+      --blue: #185FA5; --blue-light: #E6F1FB;
+      --red: #A32D2D; --red-light: #FCEBEB;
+      --green: #3B6D11; --green-light: #EAF3DE;
+      --amber: #854F0B; --amber-light: #FAEEDA;
+      --gray: #5F5E5A; --gray-light: #F1EFE8; --gray-200: #B4B2A9;
+      --bg: #F8F9FA; --surface: #FFFFFF; --border: rgba(0,0,0,0.1);
+      --text: #1A1A1A; --text-muted: #6B6B6B;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html, body { height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ─── Login Screen ─── */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--teal); display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 2rem; z-index: 1000; transition: opacity 0.3s;
+    }
+    #login-screen.hidden { opacity: 0; pointer-events: none; }
+    .login-logo { width: 72px; height: 72px; background: rgba(255,255,255,0.15); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .login-logo svg { width: 40px; height: 40px; stroke: white; }
+    #login-screen h1 { color: white; font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+    #login-screen p { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 2rem; }
+    .login-card { background: white; border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 340px; }
+    .login-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text); }
+    .nurse-btn { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: white; text-align: left; cursor: pointer; font-family: 'Inter', sans-serif;
+      font-size: 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+      transition: border-color 0.15s, background 0.15s; }
+    .nurse-btn:hover { border-color: var(--teal); background: var(--teal-light); }
+    .nurse-btn .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+    .nurse-btn .name { font-weight: 500; }
+    .nurse-btn .role { font-size: 12px; color: var(--text-muted); }
+    .pin-section { margin-top: 1rem; display: none; }
+    .pin-section label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .pin-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 20px; letter-spacing: 8px; text-align: center; font-family: monospace;
+      outline: none; transition: border-color 0.15s; }
+    .pin-input:focus { border-color: var(--teal); }
+    .btn-login { width: 100%; padding: 12px; background: var(--teal); color: white; border: none;
+      border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer;
+      margin-top: 10px; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+    .btn-login:hover { background: var(--teal-dark); }
+    .pin-error { font-size: 12px; color: var(--red); margin-top: 6px; text-align: center; display: none; }
+
+    /* ─── App Shell ─── */
+    #app { display: flex; flex-direction: column; height: 100%; }
+    .topbar { background: var(--teal); color: white; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; }
+    .topbar-logo svg { width: 18px; height: 18px; stroke: white; }
+    .topbar h1 { font-size: 16px; font-weight: 600; }
+    .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.85); }
+    .topbar-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+    .btn-logout { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer;
+      font-size: 20px; line-height: 1; padding: 2px 4px; }
+
+    .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .tab-panel { display: none; padding: 1rem; padding-bottom: calc(80px + var(--safe-bottom)); }
+    .tab-panel.active { display: block; }
+
+    /* ─── Bottom Nav ─── */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white;
+      border-top: 1px solid var(--border); display: flex;
+      padding-bottom: var(--safe-bottom); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.06); }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 8px 0; border: none; background: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; color: var(--text-muted); font-size: 11px; gap: 3px;
+      transition: color 0.15s; }
+    .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .nav-btn.active { color: var(--teal); }
+    .nav-btn.active svg { stroke-width: 2.2; }
+
+    /* ─── Cards ─── */
+    .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+      border: 1px solid var(--border); margin-bottom: 10px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; }
+    .section-title { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+
+    /* ─── Planning ─── */
+    .date-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; background: white;
+      border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .date-nav button { background: var(--gray-light); border: none; border-radius: 6px;
+      width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+    .date-nav .date-label { flex: 1; text-align: center; font-size: 14px; font-weight: 500; }
+    .btn-today { background: var(--teal-light); color: var(--teal); border: none; border-radius: 6px;
+      padding: 4px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; }
+
+    .visit-card { background: white; border-radius: var(--radius); padding: 12px 14px;
+      margin-bottom: 10px; box-shadow: var(--shadow); border: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 12px; }
+    .visit-card.running { border-color: var(--teal); background: var(--teal-light); }
+    .visit-card.done { border-color: var(--gray-200); opacity: 0.75; }
+    .visit-time-col { text-align: center; min-width: 44px; }
+    .visit-time-col .hour { font-size: 16px; font-weight: 600; color: var(--text); display: block; }
+    .visit-time-col .ampm { font-size: 11px; color: var(--text-muted); }
+    .visit-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+    .visit-body { flex: 1; min-width: 0; }
+    .visit-name { font-size: 14px; font-weight: 500; }
+    .visit-address { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .visit-tags { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+    .tag-care { background: var(--blue-light); color: var(--blue); }
+    .tag-nurse { background: var(--amber-light); color: var(--amber); }
+    .tag-done { background: var(--gray-light); color: var(--gray); }
+    .visit-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .timer-val { font-size: 14px; font-weight: 600; color: var(--teal); font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+    .btn-icon { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .btn-start { background: var(--green-light); color: var(--green); }
+    .btn-stop { background: var(--red-light); color: var(--red); }
+    .btn-map { background: var(--blue-light); color: var(--blue); }
+    .btn-delete { background: var(--red-light); color: var(--red); }
+    .duration-pill { font-size: 11px; background: var(--gray-light); color: var(--gray);
+      padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+
+    .btn-fab { position: fixed; bottom: calc(68px + var(--safe-bottom)); right: 16px;
+      width: 52px; height: 52px; border-radius: 50%; background: var(--teal); color: white;
+      border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 14px rgba(15,110,86,0.4);
+      display: flex; align-items: center; justify-content: center; z-index: 99; }
+    .btn-fab:active { transform: scale(0.95); }
+
+    /* ─── Patients ─── */
+    .search-bar { background: white; border-radius: var(--radius); padding: 10px 14px;
+      margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; }
+    .search-bar svg { width: 18px; height: 18px; stroke: var(--text-muted); flex-shrink: 0; }
+    .search-bar input { flex: 1; border: none; outline: none; font-size: 14px; background: none; font-family: 'Inter', sans-serif; }
+    .patient-card { background: white; border-radius: var(--radius); padding: 14px;
+      margin-bottom: 10px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .patient-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .patient-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+    .patient-name { font-size: 15px; font-weight: 600; }
+    .patient-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .info-value { font-size: 13px; color: var(--text); }
+    .info-full { grid-column: 1 / -1; }
+    .btn-map-link { background: var(--blue-light); color: var(--blue); border: none; border-radius: 6px;
+      padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 6px;
+      font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
+    .card-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .btn-small { flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: none; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+    /* ─── Stats ─── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-card { background: white; border-radius: var(--radius); padding: 14px;
+      box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .stat-value { font-size: 28px; font-weight: 600; color: var(--text); margin: 4px 0 2px; }
+    .stat-sub { font-size: 11px; color: var(--text-muted); }
+    .history-item { display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border); font-size: 13px; }
+    .history-item:last-child { border-bottom: none; }
+    .nurse-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .nurse-badge { display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+      border-radius: 20px; font-size: 12px; font-weight: 500; }
+
+    /* ─── Modal ─── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200;
+      align-items: flex-end; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 20px 20px 0 0; width: 100%; max-height: 92vh;
+      overflow-y: auto; padding: 1.25rem 1.25rem calc(1.5rem + var(--safe-bottom)); }
+    .modal-handle { width: 40px; height: 4px; background: var(--gray-200); border-radius: 2px;
+      margin: 0 auto 1.25rem; }
+    .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 1.25rem; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 14px; font-family: 'Inter', sans-serif; outline: none; background: white;
+      color: var(--text); transition: border-color 0.15s; -webkit-appearance: none; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--teal); }
+    .form-group textarea { height: 70px; resize: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
+    .btn-cancel { flex: 1; padding: 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: none; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif; color: var(--text); }
+    .btn-save { flex: 2; padding: 13px; background: var(--teal); color: white; border: none;
+      border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .btn-danger { flex: 1; padding: 13px; background: var(--red-light); color: var(--red); border: none;
+      border-radius: var(--radius-sm); font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; }
+
+    /* ─── Toast ─── */
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+      background: var(--text); color: white; padding: 10px 18px; border-radius: 20px;
+      font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ─── Misc ─── */
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 14px; line-height: 1.8; }
+    .empty-state svg { width: 48px; height: 48px; stroke: var(--gray-200); margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-200); display: inline-block; margin-left: 6px; }
+    .sync-dot.live { background: #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
+      <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="1" fill="white" stroke="none"/>
+    </svg>
+  </div>
+  <h1>Planning IDEL</h1>
+  <p>Application infirmière libérale</p>
+  <div class="login-card">
+    <h2>Choisissez votre profil</h2>
+    <div id="nurse-buttons"></div>
+    <div class="pin-section" id="pin-section">
+      <label>Code PIN (4 chiffres)</label>
+      <input type="password" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+      <div class="pin-error" id="pin-error">Code incorrect. Réessayez.</div>
+      <button class="btn-login" onclick="validatePin()">Se connecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+      </div>
+      <h1>Planning IDEL <span class="sync-dot" id="sync-dot"></span></h1>
+    </div>
+    <div class="topbar-user">
+      <span id="topbar-name"></span>
+      <div class="topbar-avatar" id="topbar-avatar"></div>
+      <button class="btn-logout" onclick="openSettings()" title="Paramètres" style="font-size:18px;">⚙</button>
+      <button class="btn-logout" onclick="logout()" title="Déconnexion">↩</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Planning Tab -->
+    <div class="tab-panel active" id="panel-planning">
+      <div class="date-nav">
+        <button onclick="changeDay(-1)">‹</button>
+        <div class="date-label" id="date-label"></div>
+        <button class="btn-today" onclick="goToday()">Auj.</button>
+        <button onclick="changeDay(1)">›</button>
+      </div>
+      <div class="section-header">
+        <span class="section-title" id="visit-count-label">Visites</span>
+      </div>
+      <div id="visits-container"><div class="loading">Chargement...</div></div>
+    </div>
+
+    <!-- Patients Tab -->
+    <div class="tab-panel" id="panel-patients">
+      <div class="section-header">
+        <span class="section-title" id="patients-count-label">Patients</span>
+        <button class="btn-small" style="flex:0;padding:6px 12px;" onclick="openPatientModal()">+ Ajouter</button>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Rechercher..." oninput="filterPatients(this.value)" id="patient-search" />
+      </div>
+      <div id="patients-container"><div class="loading">Chargement...</div></div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div class="tab-panel" id="panel-stats">
+      <div class="section-header"><span class="section-title">Bilan du jour</span></div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-header"><span class="section-title">Par infirmière</span></div>
+      <div id="nurse-stats"></div>
+      <div class="section-header" style="margin-top:14px"><span class="section-title">Visites effectuées</span></div>
+      <div class="card" style="padding:0 14px">
+        <div id="history-container"><div class="loading">Chargement...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('planning')" id="nav-planning">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Planning
+    </button>
+    <button class="nav-btn" onclick="switchTab('patients')" id="nav-patients">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Patients
+    </button>
+    <button class="nav-btn" onclick="switchTab('stats')" id="nav-stats">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Bilan
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="btn-fab" onclick="openVisitModal()" id="fab" title="Ajouter une visite">+</button>
+</div>
+
+<!-- Modal Paramètres infirmières -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Paramètres des infirmières</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Modifiez les prénoms et codes PIN. Les changements s'appliquent sur tous les téléphones.</p>
+    <div id="nurses-settings-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">Annuler</button>
+      <button class="btn-save" onclick="saveSettings()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal Visite -->
+<div class="modal-overlay" id="modal-visit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-visit-title">Nouvelle visite</h2>
+    <div class="form-group">
+      <label>Nom du patient</label>
+      <input type="text" id="v-patient-name" placeholder="Prénom Nom du patient" autocomplete="off" list="patients-datalist" oninput="autofillAddress(this.value)" />
+      <datalist id="patients-datalist"></datalist>
+    </div>
+    <div class="form-group">
+      <label>Adresse</label>
+      <input type="text" id="v-patient-address" placeholder="12 rue des Lilas, 64000 Pau" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Heure</label>
+        <input type="time" id="v-time" value="08:00" />
+      </div>
+      <div class="form-group">
+        <label>Durée estimée</label>
+        <select id="v-duration">
+          <option value="15">15 min</option>
+          <option value="20">20 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">1 heure</option>
+          <option value="90">1h30</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Type de soin</label>
+      <select id="v-care">
+        <option>Pansement</option>
+        <option>Injection</option>
+        <option>Prise de sang</option>
+        <option>Perfusion</option>
+        <option>Toilette</option>
+        <option>Surveillance</option>
+        <option>Glycémie</option>
+        <option>Soins divers</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Attribuée à</label>
+      <select id="v-nurse"></select>
+    </div>
+    <div class="form-group">
+      <label>Note</label>
+      <textarea id="v-note" placeholder="Observations, matériel..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeVisitModal()">Annuler</button>
+      <button class="btn-danger" id="btn-delete-visit" onclick="deleteVisit()" style="display:none">Suppr.</button>
+      <button class="btn-save" onclick="saveVisit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Patient -->
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-patient-title">Nouveau patient</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Prénom</label><input type="text" id="p-prenom" placeholder="Prénom" /></div>
+      <div class="form-group"><label>Nom</label><input type="text" id="p-nom" placeholder="Nom" /></div>
+    </div>
+    <div class="form-group"><label>Adresse complète</label><input type="text" id="p-adresse" placeholder="12 rue des Lilas, 64000 Pau" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="p-tel" placeholder="06..." /></div>
+      <div class="form-group"><label>Date de naissance</label><input type="date" id="p-ddn" /></div>
+    </div>
+    <div class="form-group"><label>N° Sécurité sociale</label><input type="text" id="p-secu" placeholder="1 23 45..." inputmode="numeric" /></div>
+    <div class="form-group"><label>Médecin traitant</label><input type="text" id="p-medecin" placeholder="Dr..." /></div>
+    <div class="form-group"><label>Pathologie / Soins habituels</label><input type="text" id="p-patho" placeholder="Diabète, plaie chronique..." /></div>
+    <div class="form-group"><label>Allergies & Notes importantes</label><textarea id="p-notes" placeholder="Allergie pénicilline, anticoagulants..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePatientModal()">Annuler</button>
+      <button class="btn-danger" id="btn-delete-patient" onclick="deletePatient()" style="display:none">Suppr.</button>
+      <button class="btn-save" onclick="savePatient()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('SW registered'))
+        .catch(e => console.log('SW error', e));
+    });
+  }
+</script>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove, serverTimestamp, onDisconnect }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ══════════════════════════════════════════
+//  🔥 CONFIGURATION FIREBASE — À MODIFIER
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBMQFFat0fnPHR91ws-V5XiuIeBwWwgeEI",
+  authDomain: "planning-infirmiere-ac9da.firebaseapp.com",
+  databaseURL: "https://planning-infirmiere-ac9da-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "planning-infirmiere-ac9da",
+  storageBucket: "planning-infirmiere-ac9da.firebasestorage.app",
+  messagingSenderId: "351035421949",
+  appId: "1:351035421949:web:1c4438e8b4f1d38019ba94"
+};
+// ══════════════════════════════════════════
+
+// ── Nurses config (modifiable depuis l'app) ──
+const DEFAULT_NURSES = [
+  { id: 'n1', name: 'Anne',    pin: '1234', colors: { bg:'#E1F5EE', color:'#0F6E56' } },
+  { id: 'n2', name: 'Sophie',  pin: '2345', colors: { bg:'#E6F1FB', color:'#185FA5' } },
+  { id: 'n3', name: 'Claire',  pin: '3456', colors: { bg:'#FAEEDA', color:'#854F0B' } },
+];
+function loadNurses() {
+  try {
+    const saved = localStorage.getItem('nurses_config');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return DEFAULT_NURSES.map((d, i) => ({ ...d, ...parsed[i] }));
+    }
+  } catch(e) {}
+  return DEFAULT_NURSES;
+}
+window.NURSES = loadNurses();
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window.db = db;
+window.dbRef = ref;
+window.dbSet = set;
+window.dbPush = push;
+window.dbRemove = remove;
+window.dbServerTimestamp = serverTimestamp;
+window.dbOnValue = onValue;
+
+// Sync indicator
+const connRef = ref(db, '.info/connected');
+onValue(connRef, (snap) => {
+  const dot = document.getElementById('sync-dot');
+  if (dot) dot.className = 'sync-dot' + (snap.val() ? ' live' : '');
+});
+
+// ── State ──
+window.currentNurse = null;
+window.selectedNurseId = null;
+window.currentDate = new Date();
+window.visits = {};
+window.patients = {};
+window.timers = {};
+window.timerIntervals = {};
+window.completedToday = [];
+window.currentTab = 'planning';
+window.editingVisitId = null;
+window.editingPatientId = null;
+
+// Listen to Firebase
+function listenData() {
+  onValue(ref(db, 'visits'), snap => {
+    window.visits = snap.val() || {};
+    renderPlanning();
+    renderStats();
+  });
+  onValue(ref(db, 'patients'), snap => {
+    window.patients = snap.val() || {};
+    renderPatients();
+  });
+  onValue(ref(db, 'timers'), snap => {
+    const remote = snap.val() || {};
+    // Merge: keep local running, sync done from remote
+    Object.entries(remote).forEach(([vid, t]) => {
+      if (!window.timers[vid] || !window.timers[vid].running) {
+        window.timers[vid] = t;
+      }
+    });
+    renderPlanning();
+  });
+}
+
+window.startListening = listenData;
+
+// ── Auth ──
+window.selectNurse = function(nurseId) {
+  window.selectedNurseId = nurseId;
+  document.querySelectorAll('.nurse-btn').forEach(b => b.style.borderColor = '');
+  document.querySelector(`[data-nurse="${nurseId}"]`).style.borderColor = '#0F6E56';
+  document.getElementById('pin-section').style.display = 'block';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').style.display = 'none';
+  document.getElementById('pin-input').focus();
+};
+
+window.validatePin = function() {
+  const nurse = NURSES.find(n => n.id === window.selectedNurseId);
+  const pin = document.getElementById('pin-input').value;
+  if (nurse && pin === nurse.pin) {
+    window.currentNurse = nurse;
+    localStorage.setItem('loggedNurse', nurse.id);
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+    setTimeout(() => document.getElementById('login-screen').remove(), 400);
+    initApp();
+  } else {
+    document.getElementById('pin-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+  }
+};
+
+window.logout = function() {
+  localStorage.removeItem('loggedNurse');
+  Object.values(window.timerIntervals).forEach(clearInterval);
+  location.reload();
+};
+
+// Allow Enter key on PIN
+document.getElementById('pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') validatePin();
+});
+
+// ── Init ──
+function initApp() {
+  const n = window.currentNurse;
+  document.getElementById('topbar-name').textContent = n.name;
+  const av = document.getElementById('topbar-avatar');
+  av.textContent = n.name[0];
+  av.style.background = n.colors.bg;
+  av.style.color = n.colors.color;
+  goToday();
+  listenData();
+  syncNursesConfig();
+}
+
+// ── Helpers ──
+function initials(name) { return (name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2); }
+function fmt(s) { const m=Math.floor(s/60),sec=s%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
+function dateKey(d) { return d.toISOString().slice(0,10); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+// ── Navigation ──
+window.switchTab = function(tab) {
+  window.currentTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  document.getElementById('fab').style.display = tab === 'planning' ? 'flex' : 'none';
+  if (tab === 'stats') renderStats();
+  if (tab === 'patients') renderPatients();
+};
+
+window.changeDay = function(n) { currentDate.setDate(currentDate.getDate()+n); renderPlanning(); };
+window.goToday = function() { window.currentDate = new Date(); renderPlanning(); };
+
+// ── Render Planning ──
+window.renderPlanning = function() {
+  const key = dateKey(window.currentDate);
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  document.getElementById('date-label').textContent = window.currentDate.toLocaleDateString('fr-FR', opts);
+  const dayVisits = Object.entries(window.visits)
+    .filter(([,v]) => v.date === key)
+    .sort(([,a],[,b]) => a.time.localeCompare(b.time));
+  document.getElementById('visit-count-label').textContent =
+    dayVisits.length + ' visite' + (dayVisits.length !== 1 ? 's' : '') + ' prévues';
+  const el = document.getElementById('visits-container');
+  if (!dayVisits.length) {
+    el.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+      Aucune visite ce jour.<br>Appuyez sur <strong>+</strong> pour en ajouter une.
+    </div>`;
+    return;
+  }
+  el.innerHTML = dayVisits.map(([id, v]) => {
+    const patientName = v.patientName || '?';
+    const nurse = NURSES.find(n => n.id === v.nurseId) || NURSES[0];
+    const t = window.timers[id];
+    const running = t && t.running;
+    const done = t && t.done;
+    const elapsed = t ? t.elapsed || 0 : 0;
+    return `<div class="visit-card ${running?'running':done?'done':''}" id="vc-${id}">
+      <div class="visit-time-col"><span class="hour">${v.time}</span></div>
+      <div class="visit-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color}">${initials(patientName)}</div>
+      <div class="visit-body">
+        <div class="visit-name">${patientName}</div>
+        <div class="visit-address">${v.patientAddress || ''}</div>
+        <div class="visit-tags">
+          <span class="tag tag-care">${v.care}</span>
+          <span class="tag tag-nurse">${nurse.name}</span>
+          ${done?`<span class="tag tag-done">✓ ${fmt(elapsed)}</span>`:''}
+          ${v.note?`<span class="tag" style="background:var(--gray-light);color:var(--gray)">${v.note.slice(0,20)}${v.note.length>20?'…':''}</span>`:''}
+        </div>
+      </div>
+      <div class="visit-actions">
+        ${running
+          ? `<div class="timer-val" id="tv-${id}">${fmt(elapsed)}</div>
+             <button class="btn-icon btn-stop" onclick="stopTimer('${id}')" title="Terminer">⏹</button>`
+          : done
+            ? `<div class="duration-pill">${fmt(elapsed)}</div>`
+            : `<button class="btn-icon btn-start" onclick="startTimer('${id}')" title="Commencer">▶</button>`
+        }
+        <button class="btn-icon btn-map" onclick="openMaps('${id}')" title="Naviguer">🗺</button>
+        <button class="btn-icon" style="background:var(--gray-light);color:var(--gray)" onclick="editVisit('${id}')" title="Modifier">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+// ── Timer ──
+window.startTimer = function(vid) {
+  if (window.timers[vid] && window.timers[vid].running) return;
+  const t = { running: true, elapsed: 0, startMs: Date.now(), done: false, nurseId: window.currentNurse.id };
+  window.timers[vid] = t;
+  dbSet(ref(db, 'timers/'+vid), { running:true, elapsed:0, done:false, nurseId:t.nurseId });
+  window.timerIntervals[vid] = setInterval(() => {
+    window.timers[vid].elapsed = Math.floor((Date.now() - t.startMs) / 1000);
+    const el = document.getElementById('tv-'+vid);
+    if (el) el.textContent = fmt(window.timers[vid].elapsed);
+  }, 1000);
+  renderPlanning();
+  showToast('Visite démarrée ▶');
+};
+
+window.stopTimer = function(vid) {
+  if (!window.timers[vid]) return;
+  clearInterval(window.timerIntervals[vid]);
+  const elapsed = window.timers[vid].elapsed;
+  window.timers[vid] = { running: false, elapsed, done: true };
+  dbSet(ref(db, 'timers/'+vid), { running:false, elapsed, done:true });
+  // Add to completed
+  const v = window.visits[vid];
+  if (v) {
+    window.completedToday.unshift({ name: v.patientName || '?', care:v.care, elapsed, time:v.time, nurseId:window.currentNurse.id });
+  }
+  renderPlanning();
+  showToast(`Visite terminée — ${fmt(elapsed)}`);
+};
+
+// ── Maps ──
+window.openMaps = function(vid) {
+  const v = window.visits[vid];
+  if (!v) return;
+  const query = v.patientAddress || '';
+  if (!query) { showToast('Ajoutez une adresse dans cette visite (bouton ✎)'); return; }
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
+    window.location.href = url;
+  } else {
+    const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
+    window.open(url, '_blank');
+  }
+};
+
+window.openMapsFromPatient = function(pid) {
+  const p = window.patients[pid];
+  if (!p) { showToast('Patient introuvable'); return; }
+  const query = p.adresse || '';
+  if (!query) { showToast('Ajoutez une adresse dans la fiche patient'); return; }
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
+  } else {
+    window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query), '_blank');
+  }
+};
+
+// ── Visit Modal ──
+window.openVisitModal = function() {
+  window.editingVisitId = null;
+  document.getElementById('modal-visit-title').textContent = 'Nouvelle visite';
+  document.getElementById('btn-delete-visit').style.display = 'none';
+  // Clear patient fields
+  document.getElementById('v-patient-name').value = '';
+  document.getElementById('v-patient-address').value = '';
+  // Populate datalist from patient fiches
+  const dl = document.getElementById('patients-datalist');
+  dl.innerHTML = Object.values(window.patients).map(p =>
+    '<option value="' + p.prenom + ' ' + p.nom + '">'
+  ).join('');
+  // Populate nurses
+  const ns = document.getElementById('v-nurse');
+  ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===window.currentNurse.id?'selected':''}>${n.name}</option>`).join('');
+  // Default time = now rounded to 15min
+  const now = new Date();
+  const m = Math.ceil(now.getMinutes()/15)*15;
+  const h = now.getHours() + Math.floor(m/60);
+  document.getElementById('v-time').value = `${String(h%24).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+  document.getElementById('v-note').value = '';
+  document.getElementById('modal-visit').classList.add('open');
+};
+
+window.editVisit = function(vid) {
+  const v = window.visits[vid];
+  if (!v) return;
+  window.editingVisitId = vid;
+  document.getElementById('modal-visit-title').textContent = 'Modifier la visite';
+  document.getElementById('btn-delete-visit').style.display = 'block';
+  document.getElementById('v-patient-name').value = v.patientName || '';
+  document.getElementById('v-patient-address').value = v.patientAddress || '';
+  const ns = document.getElementById('v-nurse');
+  ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===v.nurseId?'selected':''}>${n.name}</option>`).join('');
+  document.getElementById('v-time').value = v.time;
+  document.getElementById('v-duration').value = v.duration;
+  document.getElementById('v-care').value = v.care;
+  document.getElementById('v-note').value = v.note || '';
+  document.getElementById('modal-visit').classList.add('open');
+};
+
+window.closeVisitModal = function() { document.getElementById('modal-visit').classList.remove('open'); };
+
+window.saveVisit = function() {
+  const patientName = document.getElementById('v-patient-name').value.trim();
+  const time = document.getElementById('v-time').value;
+  if (!patientName || !time) { showToast('Indiquez le nom du patient'); return; }
+  const patientAddress = document.getElementById('v-patient-address').value.trim();
+  const data = {
+    patientName, patientAddress, time,
+    duration: parseInt(document.getElementById('v-duration').value),
+    care: document.getElementById('v-care').value,
+    nurseId: document.getElementById('v-nurse').value,
+    note: document.getElementById('v-note').value.trim(),
+    date: dateKey(window.currentDate),
+    createdBy: window.currentNurse.id
+  };
+  if (window.editingVisitId) {
+    dbSet(ref(db, 'visits/'+window.editingVisitId), data);
+    showToast('Visite modifiée ✓');
+  } else {
+    dbPush(ref(db, 'visits'), data);
+    showToast('Visite ajoutée ✓');
+  }
+  closeVisitModal();
+};
+
+window.deleteVisit = function() {
+  if (!window.editingVisitId) return;
+  if (!confirm('Supprimer cette visite ?')) return;
+  dbRemove(ref(db, 'visits/'+window.editingVisitId));
+  dbRemove(ref(db, 'timers/'+window.editingVisitId));
+  closeVisitModal();
+  showToast('Visite supprimée');
+};
+
+// ── Patient Modal ──
+window.openPatientModal = function(pid) {
+  window.editingPatientId = pid || null;
+  if (pid) {
+    const p = window.patients[pid];
+    document.getElementById('modal-patient-title').textContent = 'Modifier le patient';
+    document.getElementById('btn-delete-patient').style.display = 'block';
+    document.getElementById('p-prenom').value = p.prenom || '';
+    document.getElementById('p-nom').value = p.nom || '';
+    document.getElementById('p-adresse').value = p.adresse || '';
+    document.getElementById('p-tel').value = p.tel || '';
+    document.getElementById('p-ddn').value = p.ddn || '';
+    document.getElementById('p-secu').value = p.secu || '';
+    document.getElementById('p-medecin').value = p.medecin || '';
+    document.getElementById('p-patho').value = p.patho || '';
+    document.getElementById('p-notes').value = p.notes || '';
+  } else {
+    document.getElementById('modal-patient-title').textContent = 'Nouveau patient';
+    document.getElementById('btn-delete-patient').style.display = 'none';
+    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-secu','p-medecin','p-patho','p-notes']
+      .forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('modal-patient').classList.add('open');
+};
+
+window.closePatientModal = function() { document.getElementById('modal-patient').classList.remove('open'); };
+
+window.savePatient = function() {
+  const prenom = document.getElementById('p-prenom').value.trim();
+  const nom = document.getElementById('p-nom').value.trim();
+  if (!prenom || !nom) { showToast('Prénom et nom requis'); return; }
+  const data = {
+    prenom, nom,
+    adresse: document.getElementById('p-adresse').value.trim(),
+    tel: document.getElementById('p-tel').value.trim(),
+    ddn: document.getElementById('p-ddn').value,
+    secu: document.getElementById('p-secu').value.trim(),
+    medecin: document.getElementById('p-medecin').value.trim(),
+    patho: document.getElementById('p-patho').value.trim(),
+    notes: document.getElementById('p-notes').value.trim()
+  };
+  if (window.editingPatientId) {
+    dbSet(ref(db, 'patients/'+window.editingPatientId), data);
+    showToast('Patient modifié ✓');
+  } else {
+    dbPush(ref(db, 'patients'), data);
+    showToast('Patient ajouté ✓');
+  }
+  closePatientModal();
+};
+
+window.deletePatient = function() {
+  if (!window.editingPatientId) return;
+  if (!confirm('Supprimer ce patient ? Ses visites ne seront pas supprimées.')) return;
+  dbRemove(ref(db, 'patients/'+window.editingPatientId));
+  closePatientModal();
+  showToast('Patient supprimé');
+};
+
+// ── Patients List ──
+window.renderPatients = function() {
+  const q = (document.getElementById('patient-search') || {}).value || '';
+  filterPatients(q);
+};
+
+window.filterPatients = function(q) {
+  const list = Object.entries(window.patients)
+    .filter(([,p]) => (p.prenom+' '+p.nom+p.adresse).toLowerCase().includes(q.toLowerCase()))
+    .sort(([,a],[,b]) => a.nom.localeCompare(b.nom));
+  document.getElementById('patients-count-label').textContent = list.length + ' patient' + (list.length!==1?'s':'');
+  const el = document.getElementById('patients-container');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Aucun patient trouvé.
+    </div>`;
+    return;
+  }
+  el.innerHTML = list.map(([id,p]) => {
+    const age = p.ddn ? Math.floor((Date.now()-new Date(p.ddn))/(365.25*24*3600*1000)) : null;
+    const nurse = NURSES[Object.keys(window.patients).indexOf(id) % NURSES.length];
+    return `<div class="patient-card">
+      <div class="patient-header">
+        <div class="patient-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color}">${initials(p.prenom+' '+p.nom)}</div>
+        <div>
+          <div class="patient-name">${p.prenom} ${p.nom}</div>
+          <div class="patient-sub">${age?age+' ans · ':''}${p.medecin||'Médecin non renseigné'}</div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Téléphone</span><span class="info-value">${p.tel||'—'}</span></div>
+        <div class="info-item"><span class="info-label">N° Sécu</span><span class="info-value" style="font-size:11px">${p.secu||'—'}</span></div>
+        ${p.patho?`<div class="info-item info-full"><span class="info-label">Pathologie</span><span class="info-value">${p.patho}</span></div>`:''}
+        ${p.notes?`<div class="info-item info-full"><span class="info-label">Allergies / Notes</span><span class="info-value" style="color:var(--red)">${p.notes}</span></div>`:''}
+        <div class="info-item info-full"><span class="info-label">Adresse</span><span class="info-value">${p.adresse||'—'}</span></div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-small" onclick="openMapsFromPatient('${id}')">🗺 Naviguer</button>
+        <button class="btn-small" onclick="callPatient('${id}')">📞 Appeler</button>
+        <button class="btn-small" onclick="openPatientModal('${id}')">✎ Modifier</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.callPatient = function(pid) {
+  const p = window.patients[pid];
+  if (p && p.tel) window.location.href = 'tel:'+p.tel.replace(/\s/g,'');
+};
+
+// ── Stats ──
+window.renderStats = function() {
+  const key = dateKey(window.currentDate);
+  const dayVisits = Object.entries(window.visits).filter(([,v]) => v.date === key);
+  const done = Object.entries(window.timers).filter(([vid,t]) => t.done && window.visits[vid]?.date===key);
+  const totalSec = done.reduce((a,[,t]) => a + (t.elapsed||0), 0);
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Visites prévues</div><div class="stat-value">${dayVisits.length}</div><div class="stat-sub">aujourd'hui</div></div>
+    <div class="stat-card"><div class="stat-label">Effectuées</div><div class="stat-value">${done.length}</div><div class="stat-sub">terminées</div></div>
+    <div class="stat-card"><div class="stat-label">Temps terrain</div><div class="stat-value">${Math.round(totalSec/60)}<span style="font-size:16px">min</span></div><div class="stat-sub">temps réel</div></div>
+    <div class="stat-card"><div class="stat-label">Patients actifs</div><div class="stat-value">${Object.keys(window.patients).length}</div><div class="stat-sub">dans la liste</div></div>
+  `;
+
+  // Per nurse
+  const nurseEl = document.getElementById('nurse-stats');
+  nurseEl.innerHTML = `<div class="nurse-legend">${NURSES.map(n => {
+    const nv = dayVisits.filter(([,v])=>v.nurseId===n.id).length;
+    const nd = done.filter(([vid])=>window.visits[vid]?.nurseId===n.id).length;
+    return `<div class="nurse-badge" style="background:${n.colors.bg};color:${n.colors.color}">
+      ${n.name} — ${nd}/${nv} visite${nv!==1?'s':''}
+    </div>`;
+  }).join('')}</div>`;
+
+  // History
+  const hist = window.completedToday;
+  const histEl = document.getElementById('history-container');
+  if (!hist.length) { histEl.innerHTML='<div class="empty-state" style="padding:1.5rem">Les visites terminées apparaîtront ici.</div>'; return; }
+  histEl.innerHTML = hist.map((v,i) => {
+    const nurse = NURSES.find(n=>n.id===v.nurseId)||NURSES[0];
+    return `<div class="history-item">
+      <div class="visit-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color};width:34px;height:34px;font-size:12px">${initials(v.name)}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${v.name}</div><div style="font-size:12px;color:var(--text-muted)">${v.care} · ${v.time} · ${nurse.name}</div></div>
+      <span class="duration-pill">${fmt(v.elapsed)}</span>
+    </div>`;
+  }).join('');
+};
+
+// ── Build Login Screen ──
+const nurseButtons = document.getElementById('nurse-buttons');
+NURSES.forEach(n => {
+  const btn = document.createElement('button');
+  btn.className = 'nurse-btn';
+  btn.dataset.nurse = n.id;
+  btn.onclick = () => selectNurse(n.id);
+  btn.innerHTML = `<div class="avatar" style="background:${n.colors.bg};color:${n.colors.color}">${n.name[0]}</div>
+    <div><div class="name">${n.name}</div><div class="role">Infirmière libérale</div></div>`;
+  nurseButtons.appendChild(btn);
+});
+
+// ── Auto-login from localStorage ──
+const saved = localStorage.getItem('loggedNurse');
+if (saved) {
+  const nurse = NURSES.find(n => n.id === saved);
+  if (nurse) {
+    window.currentNurse = nurse;
+    document.getElementById('login-screen').remove();
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  }
+}
+
+// ── Autofill address from patient fiche ──
+window.autofillAddress = function(name) {
+  const match = Object.values(window.patients).find(p =>
+    (p.prenom + ' ' + p.nom).toLowerCase() === name.toLowerCase()
+  );
+  if (match && match.adresse) {
+    document.getElementById('v-patient-address').value = match.adresse;
+  }
+};
+
+// ── Settings ──
+window.openSettings = function() {
+  const list = document.getElementById('nurses-settings-list');
+  list.innerHTML = '';
+  NURSES.forEach((n, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;';
+    
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+    header.innerHTML = '<div style="width:36px;height:36px;border-radius:50%;background:'+n.colors.bg+';color:'+n.colors.color+';display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;">'+n.name[0]+'</div><span style="font-size:13px;font-weight:500;color:var(--text-muted);">Infirmiere '+(i+1)+'</span>';
+    
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    
+    const g1 = document.createElement('div');
+    g1.className = 'form-group';
+    g1.style.marginBottom = '0';
+    const l1 = document.createElement('label');
+    l1.textContent = 'Prenom';
+    const inp1 = document.createElement('input');
+    inp1.type = 'text';
+    inp1.id = 's-name-' + n.id;
+    inp1.value = n.name;
+    inp1.placeholder = 'Prenom';
+    g1.appendChild(l1);
+    g1.appendChild(inp1);
+    
+    const g2 = document.createElement('div');
+    g2.className = 'form-group';
+    g2.style.marginBottom = '0';
+    const l2 = document.createElement('label');
+    l2.textContent = 'Code PIN (4 chiffres)';
+    const inp2 = document.createElement('input');
+    inp2.type = 'text';
+    inp2.id = 's-pin-' + n.id;
+    inp2.value = n.pin;
+    inp2.maxLength = 4;
+    inp2.inputMode = 'numeric';
+    inp2.placeholder = '1234';
+    g2.appendChild(l2);
+    g2.appendChild(inp2);
+    
+    row.appendChild(g1);
+    row.appendChild(g2);
+    div.appendChild(header);
+    div.appendChild(row);
+    list.appendChild(div);
+  });
+  document.getElementById('modal-settings').classList.add('open');
+};
+
+window.closeSettings = function() {
+  document.getElementById('modal-settings').classList.remove('open');
+};
+
+window.saveSettings = function() {
+  const updated = NURSES.map(n => {
+    const name = document.getElementById('s-name-'+n.id).value.trim();
+    const pin = document.getElementById('s-pin-'+n.id).value.trim();
+    if (!name || pin.length !== 4) return null;
+    return { name, pin };
+  });
+  if (updated.includes(null)) { showToast('Vérifiez les prénoms et codes PIN (4 chiffres)'); return; }
+  // Save to localStorage so all future loads use new config
+  localStorage.setItem('nurses_config', JSON.stringify(updated));
+  // Also push to Firebase so other devices get it
+  dbSet(ref(db, 'nurses_config'), updated);
+  // Update in memory
+  window.NURSES = NURSES.map((n, i) => ({ ...n, ...updated[i] }));
+  // Refresh login buttons
+  const nurseButtons = document.getElementById('nurse-buttons');
+  if (nurseButtons) {
+    nurseButtons.innerHTML = '';
+    NURSES.forEach(n => {
+      const btn = document.createElement('button');
+      btn.className = 'nurse-btn';
+      btn.dataset.nurse = n.id;
+      btn.onclick = () => selectNurse(n.id);
+      btn.innerHTML = `<div class="avatar" style="background:${n.colors.bg};color:${n.colors.color}">${n.name[0]}</div>
+        <div><div class="name">${n.name}</div><div class="role">Infirmière libérale</div></div>`;
+      nurseButtons.appendChild(btn);
+    });
+  }
+  // Update topbar
+  const topName = document.getElementById('topbar-name');
+  if (topName && window.currentNurse) {
+    const updated_nurse = NURSES.find(n => n.id === window.currentNurse.id);
+    if (updated_nurse) { window.currentNurse = updated_nurse; topName.textContent = updated_nurse.name; }
+  }
+  closeSettings();
+  showToast('Paramètres enregistrés ✓');
+  renderPlanning();
+};
+
+// Sync nurses config from Firebase on load
+window.syncNursesConfig = function() {
+  onValue(ref(db, 'nurses_config'), snap => {
+    const remote = snap.val();
+    if (remote) {
+      localStorage.setItem('nurses_config', JSON.stringify(remote));
+      window.NURSES = DEFAULT_NURSES.map((d, i) => ({ ...d, ...(remote[i]||{}) }));
+    }
+  });
+};
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
