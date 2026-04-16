@@ -371,15 +371,8 @@
         <input type="time" id="v-time" value="08:00" />
       </div>
       <div class="form-group">
-        <label>Durée estimée</label>
-        <select id="v-duration">
-          <option value="15">15 min</option>
-          <option value="20">20 min</option>
-          <option value="30" selected>30 min</option>
-          <option value="45">45 min</option>
-          <option value="60">1 heure</option>
-          <option value="90">1h30</option>
-        </select>
+        <label>Durée réelle (hh:mm)</label>
+        <input type="time" id="v-duration" value="00:30" min="00:05" max="04:00" />
       </div>
     </div>
     <div class="form-group">
@@ -425,7 +418,7 @@
       <div class="form-group"><label>Téléphone</label><input type="tel" id="p-tel" placeholder="06..." /></div>
       <div class="form-group"><label>Date de naissance</label><input type="date" id="p-ddn" /></div>
     </div>
-    <div class="form-group"><label>N° Sécurité sociale</label><input type="text" id="p-secu" placeholder="1 23 45..." inputmode="numeric" /></div>
+
     <div class="form-group"><label>Médecin traitant</label><input type="text" id="p-medecin" placeholder="Dr..." /></div>
     <div class="form-group"><label>Pathologie / Soins habituels</label><input type="text" id="p-patho" placeholder="Diabète, plaie chronique..." /></div>
     <div class="form-group"><label>Allergies & Notes importantes</label><textarea id="p-notes" placeholder="Allergie pénicilline, anticoagulants..."></textarea></div>
@@ -766,7 +759,9 @@ window.editVisit = function(vid) {
   const ns = document.getElementById('v-nurse');
   ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===v.nurseId?'selected':''}>${n.name}</option>`).join('');
   document.getElementById('v-time').value = v.time;
-  document.getElementById('v-duration').value = v.duration;
+  const dh = String(Math.floor((v.duration||30)/60)).padStart(2,'0');
+  const dm = String((v.duration||30)%60).padStart(2,'0');
+  document.getElementById('v-duration').value = dh+':'+dm;
   document.getElementById('v-care').value = v.care;
   document.getElementById('v-note').value = v.note || '';
   document.getElementById('modal-visit').classList.add('open');
@@ -781,7 +776,7 @@ window.saveVisit = function() {
   const patientAddress = document.getElementById('v-patient-address').value.trim();
   const data = {
     patientName, patientAddress, time,
-    duration: parseInt(document.getElementById('v-duration').value),
+    duration: (function(){ const t = document.getElementById('v-duration').value; const parts = t.split(':'); return parseInt(parts[0])*60 + parseInt(parts[1]); })(),
     care: document.getElementById('v-care').value,
     nurseId: document.getElementById('v-nurse').value,
     note: document.getElementById('v-note').value.trim(),
@@ -819,14 +814,14 @@ window.openPatientModal = function(pid) {
     document.getElementById('p-adresse').value = p.adresse || '';
     document.getElementById('p-tel').value = p.tel || '';
     document.getElementById('p-ddn').value = p.ddn || '';
-    document.getElementById('p-secu').value = p.secu || '';
+
     document.getElementById('p-medecin').value = p.medecin || '';
     document.getElementById('p-patho').value = p.patho || '';
     document.getElementById('p-notes').value = p.notes || '';
   } else {
     document.getElementById('modal-patient-title').textContent = 'Nouveau patient';
     document.getElementById('btn-delete-patient').style.display = 'none';
-    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-secu','p-medecin','p-patho','p-notes']
+    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-medecin','p-patho','p-notes']
       .forEach(id => document.getElementById(id).value = '');
   }
   document.getElementById('modal-patient').classList.add('open');
@@ -843,7 +838,7 @@ window.savePatient = function() {
     adresse: document.getElementById('p-adresse').value.trim(),
     tel: document.getElementById('p-tel').value.trim(),
     ddn: document.getElementById('p-ddn').value,
-    secu: document.getElementById('p-secu').value.trim(),
+
     medecin: document.getElementById('p-medecin').value.trim(),
     patho: document.getElementById('p-patho').value.trim(),
     notes: document.getElementById('p-notes').value.trim()
@@ -898,7 +893,7 @@ window.filterPatients = function(q) {
       </div>
       <div class="info-grid">
         <div class="info-item"><span class="info-label">Téléphone</span><span class="info-value">${p.tel||'—'}</span></div>
-        <div class="info-item"><span class="info-label">N° Sécu</span><span class="info-value" style="font-size:11px">${p.secu||'—'}</span></div>
+
         ${p.patho?`<div class="info-item info-full"><span class="info-label">Pathologie</span><span class="info-value">${p.patho}</span></div>`:''}
         ${p.notes?`<div class="info-item info-full"><span class="info-label">Allergies / Notes</span><span class="info-value" style="color:var(--red)">${p.notes}</span></div>`:''}
         <div class="info-item info-full"><span class="info-label">Adresse</span><span class="info-value">${p.adresse||'—'}</span></div>
