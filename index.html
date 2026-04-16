@@ -235,6 +235,15 @@
       cursor: pointer; font-family: "Inter", sans-serif; margin-bottom: 12px; width: 100%; justify-content: center; }
     .btn-parcours:active { opacity: 0.85; }
     .drag-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 8px; }
+    .travel-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+      background: var(--amber-light); border-radius: var(--radius-sm); margin-bottom: 8px;
+      border: 1px solid rgba(133,79,11,0.2); }
+    .travel-bar .travel-label { font-size: 12px; color: var(--amber); font-weight: 500; flex: 1; }
+    .travel-bar .travel-time { font-size: 13px; font-weight: 600; color: var(--amber); font-variant-numeric: tabular-nums; }
+    .travel-bar .btn-travel { background: var(--amber); color: white; border: none; border-radius: 6px;
+      padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: Inter,sans-serif; }
+    .travel-est { font-size: 11px; color: var(--amber); opacity: 0.8; }
+    .btn-map-route { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; }
   </style>
 </head>
 <body>
@@ -344,6 +353,22 @@
   <button class="btn-fab" onclick="openVisitModal()" id="fab" title="Ajouter une visite">+</button>
 </div>
 
+<!-- Modal Carte Trajet -->
+<div class="modal-overlay" id="modal-map">
+  <div class="modal" style="max-height:92vh;padding-bottom:1rem;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h2 style="margin:0;font-size:16px;" id="map-modal-title">Trajet</h2>
+      <button class="btn-cancel" style="flex:0;padding:6px 12px;" onclick="closeMapModal()">✕</button>
+    </div>
+    <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber);" id="map-info"></div>
+    <div id="map-container" style="width:100%;height:340px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-save" style="flex:1;" id="btn-open-gmaps" onclick="openGmapsFromModal()">🗺 Ouvrir Google Maps</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Paramètres infirmières -->
 <div class="modal-overlay" id="modal-settings">
   <div class="modal">
@@ -451,6 +476,9 @@
   }
 </script>
 
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry" async defer></script>
+
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -518,6 +546,9 @@ window.completedToday = [];
 window.currentTab = 'planning';
 window.editingVisitId = null;
 window.editingPatientId = null;
+window.travelTimers = {};
+window.travelIntervals = {};
+window.travelEstimates = {};
 
 // Listen to Firebase
 function listenData() {
@@ -592,6 +623,7 @@ function initApp() {
   av.style.color = n.colors.color;
   goToday();
   listenData();
+  listenTravel();
   syncNursesConfig();
 }
 
@@ -645,14 +677,35 @@ window.renderPlanning = function() {
   const dragHint = document.getElementById('drag-hint');
   if (parcoursBtn) parcoursBtn.style.display = hasAddresses ? 'flex' : 'none';
   if (dragHint) dragHint.style.display = dayVisits.length > 1 ? 'block' : 'none';
-  el.innerHTML = dayVisits.map(([id, v]) => {
+  el.innerHTML = dayVisits.map(([id, v], i) => {
     const patientName = v.patientName || '?';
     const nurse = NURSES.find(n => n.id === v.nurseId) || NURSES[0];
     const t = window.timers[id];
     const running = t && t.running;
     const done = t && t.done;
     const elapsed = t ? t.elapsed || 0 : 0;
-    return `<div class="visit-card ${running?'running':done?'done':''}" id="vc-${id}">
+    const prevVisit = i > 0 ? dayVisits[i-1] : null;
+    const fromAddr = prevVisit ? prevVisit[1].patientAddress : (window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '');
+    const toAddr = v.patientAddress || '';
+    const travelKey = id;
+    const tt = window.travelTimers[travelKey];
+    const ttRunning = tt && tt.running;
+    const ttDone = tt && tt.done;
+    const ttElapsed = tt ? tt.elapsed || 0 : 0;
+    const estMin = window.travelEstimates[travelKey];
+    const travelBar = (fromAddr && toAddr) ? `
+      <div class="travel-bar" id="tb-${travelKey}">
+        <span class="travel-label">🚗 Trajet${estMin ? ' (≈'+estMin+' min estimé)' : ''}</span>
+        ${ttDone
+          ? `<span class="travel-time">✓ ${fmtT(ttElapsed)}</span>`
+          : ttRunning
+            ? `<span class="travel-time" id="tt-${travelKey}">${fmtT(ttElapsed)}</span>
+               <button class="btn-travel" onclick="stopTravel('${travelKey}')">Arrivé</button>`
+            : `<button class="btn-travel" onclick="startTravel('${travelKey}','${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}')">En route</button>
+               <button class="btn-map-route" onclick="showRouteMap('${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}','${v.patientName||'Patient'}')" title="Voir le tracé">🗺</button>`
+        }
+      </div>` : '';
+    return travelBar + `<div class="visit-card ${running?'running':done?'done':''}" id="vc-${id}">
       <div class="visit-time-col"><span class="hour">${v.time}</span></div>
       <div class="visit-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color}">${initials(patientName)}</div>
       <div class="visit-body">
@@ -938,6 +991,12 @@ window.renderStats = function() {
   const totalSec = done.reduce((a,[,t]) => a + (t.elapsed||0), 0);
 
   const plannedMin = dayVisits.reduce((a,[,v]) => a + (v.duration||0), 0);
+  const travelSec = Object.entries(window.travelTimers)
+    .filter(([k,t]) => t.done && window.visits[k]?.date===key)
+    .reduce((a,[,t]) => a + (t.elapsed||0), 0);
+  const travelMin = Math.round(travelSec/60);
+  const travelH = Math.floor(travelMin/60);
+  const travelM = travelMin%60;
   const plannedH = Math.floor(plannedMin/60);
   const plannedM = plannedMin%60;
   const realMin = Math.round(totalSec/60);
@@ -950,6 +1009,8 @@ window.renderStats = function() {
     <div class="stat-card"><div class="stat-label">Effectuées</div><div class="stat-value">${done.length}</div><div class="stat-sub">terminées</div></div>
     <div class="stat-card"><div class="stat-label">Temps prévu</div><div class="stat-value" style="font-size:22px">${fmtDur(plannedH,plannedM)}</div><div class="stat-sub">total journée</div></div>
     <div class="stat-card"><div class="stat-label">Temps réel</div><div class="stat-value" style="font-size:22px">${realMin>0?fmtDur(realH,realM):'—'}</div><div class="stat-sub">chronomètres</div></div>
+    <div class="stat-card"><div class="stat-label">Temps route</div><div class="stat-value" style="font-size:22px">${travelMin>0?fmtDur(travelH,travelM):'—'}</div><div class="stat-sub">trajets mesurés</div></div>
+    <div class="stat-card"><div class="stat-label">Temps total</div><div class="stat-value" style="font-size:22px">${(realMin+travelMin)>0?fmtDur(Math.floor((realMin+travelMin)/60),(realMin+travelMin)%60):'—'}</div><div class="stat-sub">soins + route</div></div>
   `;
 
   // Per nurse
@@ -999,6 +1060,126 @@ if (saved) {
     initApp();
   }
 }
+
+// ── Travel timer ──
+function fmtT(s) { const m=Math.floor(s/60),sec=s%60; return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+
+window.startTravel = function(key, fromEnc, toEnc) {
+  const from = decodeURIComponent(fromEnc);
+  const to = decodeURIComponent(toEnc);
+  if (window.travelTimers[key] && window.travelTimers[key].running) return;
+  const t = { running: true, elapsed: 0, startMs: Date.now(), done: false };
+  window.travelTimers[key] = t;
+  window.travelIntervals[key] = setInterval(() => {
+    window.travelTimers[key].elapsed = Math.floor((Date.now() - t.startMs) / 1000);
+    const el = document.getElementById('tt-' + key);
+    if (el) el.textContent = fmtT(window.travelTimers[key].elapsed);
+  }, 1000);
+  // Estimate with Google Maps Directions API
+  if (typeof google !== 'undefined' && google.maps && google.maps.DirectionsService) {
+    const ds = new google.maps.DirectionsService();
+    ds.route({ origin: from, destination: to, travelMode: 'DRIVING' }, (result, status) => {
+      if (status === 'OK') {
+        const mins = Math.round(result.routes[0].legs[0].duration.value / 60);
+        window.travelEstimates[key] = mins;
+        renderPlanning();
+      }
+    });
+  }
+  renderPlanning();
+  showToast('Trajet démarré 🚗');
+  // Open Maps navigation
+  const url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(from) + '&destination=' + encodeURIComponent(to) + '&travelmode=driving';
+  window.open(url, '_blank');
+};
+
+window.stopTravel = function(key) {
+  if (!window.travelTimers[key]) return;
+  clearInterval(window.travelIntervals[key]);
+  const elapsed = window.travelTimers[key].elapsed;
+  window.travelTimers[key] = { running: false, elapsed, done: true };
+  // Save to Firebase
+  dbSet(ref(db, 'travel/'+key), { elapsed, done: true });
+  renderPlanning();
+  showToast('Trajet terminé — ' + fmtT(elapsed));
+};
+
+// Load travel data from Firebase
+function listenTravel() {
+  onValue(ref(db, 'travel'), snap => {
+    const remote = snap.val() || {};
+    Object.entries(remote).forEach(([k, t]) => {
+      if (!window.travelTimers[k] || !window.travelTimers[k].running) {
+        window.travelTimers[k] = t;
+      }
+    });
+    renderPlanning();
+  });
+}
+
+// ── Map modal ──
+window.currentMapFrom = '';
+window.currentMapTo = '';
+window.mapInstance = null;
+
+window.showRouteMap = function(fromEnc, toEnc, patientName) {
+  const from = decodeURIComponent(fromEnc);
+  const to = decodeURIComponent(toEnc);
+  window.currentMapFrom = from;
+  window.currentMapTo = to;
+  document.getElementById('map-modal-title').textContent = 'Trajet vers ' + patientName;
+  document.getElementById('map-info').textContent = 'De : ' + from + '
+Vers : ' + to;
+  document.getElementById('modal-map').classList.add('open');
+  // Wait for modal to be visible then init map
+  setTimeout(() => initRouteMap(from, to), 150);
+};
+
+window.initRouteMap = function(from, to) {
+  if (typeof google === 'undefined' || !google.maps) {
+    document.getElementById('map-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;">Carte non disponible — utilisez Google Maps</div>';
+    return;
+  }
+  const mapDiv = document.getElementById('map-container');
+  const map = new google.maps.Map(mapDiv, {
+    zoom: 12,
+    center: { lat: 43.3, lng: -0.37 },
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+  });
+  window.mapInstance = map;
+
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({
+    map: map,
+    suppressMarkers: false,
+    polylineOptions: { strokeColor: '#0F6E56', strokeWeight: 5 }
+  });
+
+  ds.route({ origin: from, destination: to, travelMode: 'DRIVING' }, (result, status) => {
+    if (status === 'OK') {
+      dr.setDirections(result);
+      const leg = result.routes[0].legs[0];
+      document.getElementById('map-info').innerHTML =
+        '<strong>' + leg.duration.text + '</strong> de trajet · ' + leg.distance.text +
+        '<br><span style="font-size:11px;opacity:0.8">De : ' + from + '</span>';
+    } else {
+      document.getElementById('map-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;padding:1rem;text-align:center;">Impossible de calculer le trajet.<br>Vérifiez les adresses.</div>';
+    }
+  });
+};
+
+window.closeMapModal = function() {
+  document.getElementById('modal-map').classList.remove('open');
+  window.mapInstance = null;
+};
+
+window.openGmapsFromModal = function() {
+  const url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(window.currentMapFrom)
+    + '&destination=' + encodeURIComponent(window.currentMapTo) + '&travelmode=driving';
+  window.open(url, '_blank');
+};
 
 // ── Autofill address from patient fiche ──
 window.autofillAddress = function(name) {
