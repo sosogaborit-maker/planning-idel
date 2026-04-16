@@ -227,6 +227,14 @@
     .sync-dot.live { background: #4ade80; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 14px; }
+    .visit-card { cursor: grab; }
+    .visit-card.dragging { opacity: 0.4; border: 2px dashed var(--teal); }
+    .visit-card.drag-over { border-top: 3px solid var(--teal); }
+    .btn-parcours { display: flex; align-items: center; gap: 8px; background: var(--teal); color: white;
+      border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: "Inter", sans-serif; margin-bottom: 12px; width: 100%; justify-content: center; }
+    .btn-parcours:active { opacity: 0.85; }
+    .drag-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -285,6 +293,8 @@
       <div class="section-header">
         <span class="section-title" id="visit-count-label">Visites</span>
       </div>
+      <button class="btn-parcours" id="btn-parcours" onclick="openParcours()" style="display:none">🗺 Lancer le parcours du jour</button>
+      <div class="drag-hint" id="drag-hint" style="display:none">Maintenez et glissez pour réordonner</div>
       <div id="visits-container"><div class="loading">Chargement...</div></div>
     </div>
 
@@ -339,7 +349,7 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <h2>Paramètres des infirmières</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Modifiez les prénoms et codes PIN. Les changements s'appliquent sur tous les téléphones.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Modifiez les prénoms, codes PIN et adresse domicile. Les changements s'appliquent sur tous les téléphones.</p>
     <div id="nurses-settings-list"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeSettings()">Annuler</button>
@@ -629,6 +639,12 @@ window.renderPlanning = function() {
     </div>`;
     return;
   }
+  // Show parcours button if there are visits with addresses
+  const hasAddresses = dayVisits.some(([,v]) => v.patientAddress);
+  const parcoursBtn = document.getElementById('btn-parcours');
+  const dragHint = document.getElementById('drag-hint');
+  if (parcoursBtn) parcoursBtn.style.display = hasAddresses ? 'flex' : 'none';
+  if (dragHint) dragHint.style.display = dayVisits.length > 1 ? 'block' : 'none';
   el.innerHTML = dayVisits.map(([id, v]) => {
     const patientName = v.patientName || '?';
     const nurse = NURSES.find(n => n.id === v.nurseId) || NURSES[0];
@@ -662,6 +678,8 @@ window.renderPlanning = function() {
       </div>
     </div>`;
   }).join('');
+  // Init drag and drop after DOM update
+  setTimeout(window.initDragDrop, 50);
 };
 
 // ── Timer ──
@@ -919,11 +937,19 @@ window.renderStats = function() {
   const done = Object.entries(window.timers).filter(([vid,t]) => t.done && window.visits[vid]?.date===key);
   const totalSec = done.reduce((a,[,t]) => a + (t.elapsed||0), 0);
 
+  const plannedMin = dayVisits.reduce((a,[,v]) => a + (v.duration||0), 0);
+  const plannedH = Math.floor(plannedMin/60);
+  const plannedM = plannedMin%60;
+  const realMin = Math.round(totalSec/60);
+  const realH = Math.floor(realMin/60);
+  const realM = realMin%60;
+  const fmtDur = (h,m) => h>0 ? h+'h'+String(m).padStart(2,'0') : m+'min';
+
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">Visites prévues</div><div class="stat-value">${dayVisits.length}</div><div class="stat-sub">aujourd'hui</div></div>
     <div class="stat-card"><div class="stat-label">Effectuées</div><div class="stat-value">${done.length}</div><div class="stat-sub">terminées</div></div>
-    <div class="stat-card"><div class="stat-label">Temps terrain</div><div class="stat-value">${Math.round(totalSec/60)}<span style="font-size:16px">min</span></div><div class="stat-sub">temps réel</div></div>
-    <div class="stat-card"><div class="stat-label">Patients actifs</div><div class="stat-value">${Object.keys(window.patients).length}</div><div class="stat-sub">dans la liste</div></div>
+    <div class="stat-card"><div class="stat-label">Temps prévu</div><div class="stat-value" style="font-size:22px">${fmtDur(plannedH,plannedM)}</div><div class="stat-sub">total journée</div></div>
+    <div class="stat-card"><div class="stat-label">Temps réel</div><div class="stat-value" style="font-size:22px">${realMin>0?fmtDur(realH,realM):'—'}</div><div class="stat-sub">chronomètres</div></div>
   `;
 
   // Per nurse
@@ -1033,11 +1059,30 @@ window.openSettings = function() {
     div.appendChild(row);
     list.appendChild(div);
   });
+  // Home address section
+  const homeDiv = document.createElement('div');
+  homeDiv.style.cssText = 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);';
+  const homeLabel = document.createElement('label');
+  homeLabel.textContent = 'Mon adresse de départ (domicile)';
+  homeLabel.style.cssText = 'display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;';
+  const homeInput = document.createElement('input');
+  homeInput.type = 'text';
+  homeInput.id = 's-home-address';
+  homeInput.placeholder = '12 rue de la Paix, 64000 Pau';
+  homeInput.value = window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '';
+  homeInput.style.cssText = 'width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);';
+  homeDiv.appendChild(homeLabel);
+  homeDiv.appendChild(homeInput);
+  list.appendChild(homeDiv);
   document.getElementById('modal-settings').classList.add('open');
 };
 
 window.closeSettings = function() {
   document.getElementById('modal-settings').classList.remove('open');
+};
+
+window.getHomeAddress = function() {
+  try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; }
 };
 
 window.saveSettings = function() {
@@ -1074,9 +1119,94 @@ window.saveSettings = function() {
     const updated_nurse = NURSES.find(n => n.id === window.currentNurse.id);
     if (updated_nurse) { window.currentNurse = updated_nurse; topName.textContent = updated_nurse.name; }
   }
+  // Save home address
+  const homeAddr = document.getElementById('s-home-address');
+  if (homeAddr && window.currentNurse) {
+    localStorage.setItem('nurse_home_'+window.currentNurse.id, JSON.stringify(homeAddr.value.trim()));
+  }
   closeSettings();
   showToast('Paramètres enregistrés ✓');
   renderPlanning();
+};
+
+// ── Visit order (manual drag) ──
+window.visitOrder = [];
+
+window.openParcours = function() {
+  const key = dateKey(window.currentDate);
+  const dayVisits = Object.entries(window.visits)
+    .filter(([,v]) => v.date === key && v.patientAddress);
+  if (!dayVisits.length) { showToast('Aucune adresse renseignée pour les visites du jour'); return; }
+
+  // Get ordered visits
+  let ordered = [];
+  if (window.visitOrder.length) {
+    window.visitOrder.forEach(id => {
+      const v = window.visits[id];
+      if (v && v.date === key && v.patientAddress) ordered.push([id, v]);
+    });
+    // Add any not in order
+    dayVisits.forEach(([id,v]) => { if (!window.visitOrder.includes(id)) ordered.push([id,v]); });
+  } else {
+    ordered = dayVisits.sort(([,a],[,b]) => a.time.localeCompare(b.time));
+  }
+
+  // Build Google Maps URL with waypoints
+  const home = window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '';
+  const destinations = ordered.map(([,v]) => encodeURIComponent(v.patientAddress));
+  
+  let url;
+  if (destinations.length === 1) {
+    url = 'https://www.google.com/maps/dir/?api=1'
+      + (home ? '&origin=' + encodeURIComponent(home) : '')
+      + '&destination=' + destinations[0];
+  } else {
+    const last = destinations.pop();
+    url = 'https://www.google.com/maps/dir/?api=1'
+      + (home ? '&origin=' + encodeURIComponent(home) : '')
+      + '&destination=' + last
+      + '&waypoints=' + destinations.join('|');
+  }
+  
+  window.open(url, '_blank');
+};
+
+// ── Drag and drop reorder ──
+window.initDragDrop = function() {
+  const container = document.getElementById('visits-container');
+  let dragSrc = null;
+
+  container.querySelectorAll('.visit-card').forEach(card => {
+    card.draggable = true;
+    card.addEventListener('dragstart', function(e) {
+      dragSrc = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', function() {
+      this.classList.remove('dragging');
+      container.querySelectorAll('.visit-card').forEach(c => c.classList.remove('drag-over'));
+      // Save new order
+      window.visitOrder = [...container.querySelectorAll('.visit-card')].map(c => c.id.replace('vc-',''));
+    });
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      container.querySelectorAll('.visit-card').forEach(c => c.classList.remove('drag-over'));
+      if (this !== dragSrc) this.classList.add('drag-over');
+      return false;
+    });
+    card.addEventListener('drop', function(e) {
+      e.stopPropagation();
+      if (dragSrc !== this) {
+        const cards = [...container.querySelectorAll('.visit-card')];
+        const srcIdx = cards.indexOf(dragSrc);
+        const dstIdx = cards.indexOf(this);
+        if (srcIdx < dstIdx) this.after(dragSrc);
+        else this.before(dragSrc);
+      }
+      return false;
+    });
+  });
 };
 
 // Sync nurses config from Firebase on load
