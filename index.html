@@ -393,8 +393,12 @@
     <h2 id="modal-visit-title">Nouvelle visite</h2>
     <div class="form-group">
       <label>Nom du patient</label>
-      <input type="text" id="v-patient-name" placeholder="Prénom Nom du patient" autocomplete="off" list="patients-datalist" oninput="autofillAddress(this.value)" />
-      <datalist id="patients-datalist"></datalist>
+      <div style="position:relative;">
+        <input type="text" id="v-patient-name" placeholder="Rechercher un patient..." autocomplete="off"
+          oninput="searchPatients(this.value)" onfocus="searchPatients(this.value)"
+          style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);" />
+        <div id="patient-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--teal);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+      </div>
     </div>
     <div class="form-group">
       <label>Adresse</label>
@@ -802,11 +806,7 @@ window.openVisitModal = function() {
   // Clear patient fields
   document.getElementById('v-patient-name').value = '';
   document.getElementById('v-patient-address').value = '';
-  // Populate datalist from patient fiches
-  const dl = document.getElementById('patients-datalist');
-  dl.innerHTML = Object.values(window.patients).map(p =>
-    '<option value="' + p.prenom + ' ' + p.nom + '">'
-  ).join('');
+  document.getElementById('patient-dropdown').style.display = 'none';
   // Populate nurses
   const ns = document.getElementById('v-nurse');
   ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===window.currentNurse.id?'selected':''}>${n.name}</option>`).join('');
@@ -1181,15 +1181,53 @@ window.openGmapsFromModal = function() {
   window.open(url, '_blank');
 };
 
-// ── Autofill address from patient fiche ──
-window.autofillAddress = function(name) {
-  const match = Object.values(window.patients).find(p =>
-    (p.prenom + ' ' + p.nom).toLowerCase() === name.toLowerCase()
-  );
-  if (match && match.adresse) {
-    document.getElementById('v-patient-address').value = match.adresse;
+// ── Patient search dropdown ──
+window.searchPatients = function(q) {
+  const dd = document.getElementById('patient-dropdown');
+  const list = Object.entries(window.patients)
+    .filter(([,p]) => (p.prenom+' '+p.nom).toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 8);
+
+  if (!list.length && q.length > 0) {
+    dd.style.display = 'block';
+    dd.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--text-muted);">Aucun patient trouvé — saisie libre</div>';
+    return;
   }
+  if (!list.length) { dd.style.display = 'none'; return; }
+
+  dd.style.display = 'block';
+  dd.innerHTML = list.map(([id,p]) => {
+    const colors = window.NURSES[Object.keys(window.patients).indexOf(id) % window.NURSES.length].colors;
+    return `<div onclick="selectPatient('${id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border);"
+      onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='white'">
+      <div style="width:32px;height:32px;border-radius:50%;background:${colors.bg};color:${colors.color};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0;">
+        ${(p.prenom[0]||'')+(p.nom[0]||'')}
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:500;">${p.prenom} ${p.nom}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${p.adresse||'Adresse non renseignée'}</div>
+      </div>
+    </div>`;
+  }).join('');
 };
+
+window.selectPatient = function(pid) {
+  const p = window.patients[pid];
+  if (!p) return;
+  document.getElementById('v-patient-name').value = p.prenom + ' ' + p.nom;
+  document.getElementById('v-patient-address').value = p.adresse || '';
+  document.getElementById('patient-dropdown').style.display = 'none';
+};
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('patient-dropdown');
+  const inp = document.getElementById('v-patient-name');
+  if (dd && inp && !dd.contains(e.target) && e.target !== inp) {
+    dd.style.display = 'none';
+  }
+});
 
 // ── Settings ──
 window.openSettings = function() {
