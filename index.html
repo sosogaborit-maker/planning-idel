@@ -667,6 +667,7 @@ function openVisitModal(){
   document.getElementById('v-patient-name').value='';
   document.getElementById('v-patient-address').value='';
   document.getElementById('patient-dropdown').style.display='none';
+  var cw2 = document.getElementById('conflict-warning'); if(cw2) cw2.remove();
   var ns=document.getElementById('v-nurse');
   ns.innerHTML=window.NURSES.map(function(n){return '<option value="'+n.id+'"'+(ST.nurse&&n.id===ST.nurse.id?' selected':'')+'>'+n.name+'</option>';}).join('');
   var now=new Date(), m=Math.ceil(now.getMinutes()/15)*15, h=now.getHours()+Math.floor(m/60);
@@ -694,12 +695,82 @@ function editVisit(vid){
 }
 
 document.getElementById('btn-cancel-visit').addEventListener('click',function(){document.getElementById('modal-visit').classList.remove('open');});
+
+// ── Conflict detection ──
+function checkConflict(nurseId, date, startTime, durationMin, excludeId) {
+  var startH = parseInt(startTime.split(':')[0]), startM = parseInt(startTime.split(':')[1]);
+  var startTotal = startH * 60 + startM;
+  var endTotal = startTotal + durationMin;
+  var conflicts = [];
+  Object.entries(ST.visits).forEach(function(e) {
+    var vid = e[0], v = e[1];
+    if (vid === excludeId) return;
+    if (v.date !== date || v.nurseId !== nurseId) return;
+    var vh = parseInt(v.time.split(':')[0]), vm = parseInt(v.time.split(':')[1]);
+    var vStart = vh * 60 + vm;
+    var vEnd = vStart + (v.duration || 30);
+    if (startTotal < vEnd && endTotal > vStart) {
+      conflicts.push({ name: v.patientName || '?', time: v.time, duration: v.duration || 30 });
+    }
+  });
+  return conflicts;
+}
+
+function findNextSlot(nurseId, date, durationMin) {
+  var slots = [];
+  Object.entries(ST.visits).forEach(function(e) {
+    var v = e[1];
+    if (v.date !== date || v.nurseId !== nurseId) return;
+    var h = parseInt(v.time.split(':')[0]), m = parseInt(v.time.split(':')[1]);
+    slots.push({ start: h * 60 + m, end: h * 60 + m + (v.duration || 30) });
+  });
+  slots.sort(function(a, b) { return a.start - b.start; });
+  var candidate = 8 * 60; // start at 8h00
+  for (var i = 0; i < slots.length; i++) {
+    if (candidate + durationMin <= slots[i].start) break;
+    if (slots[i].end > candidate) candidate = slots[i].end;
+  }
+  return pad(Math.floor(candidate / 60)) + ':' + pad(candidate % 60);
+}
+
+function showConflictWarning(conflicts, nextSlot) {
+  var msg = 'Conflit avec ' + conflicts.map(function(c) { return c.name + ' a ' + c.time; }).join(', ') + '.';
+  msg += ' Prochain creneau libre : ' + nextSlot + '.';
+  // Show in a styled warning div inside the modal
+  var existing = document.getElementById('conflict-warning');
+  if (existing) existing.remove();
+  var warn = document.createElement('div');
+  warn.id = 'conflict-warning';
+  warn.style.cssText = 'background:var(--amber-light);border:1px solid rgba(133,79,11,0.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);';
+  warn.innerHTML = '<strong>Attention :</strong> ' + msg + '<br><button id="btn-use-slot" style="margin-top:6px;background:var(--amber);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Utiliser ' + nextSlot + '</button>';
+  var firstGroup = document.querySelector('#modal-visit .form-group');
+  firstGroup.parentNode.insertBefore(warn, firstGroup);
+  document.getElementById('btn-use-slot').addEventListener('click', function() {
+    document.getElementById('v-time').value = nextSlot;
+    warn.remove();
+  });
+  return false;
+}
+
 document.getElementById('btn-save-visit').addEventListener('click',function(){
+  // Remove any previous warning
+  var cw = document.getElementById('conflict-warning');
+  if (cw) cw.remove();
   var pname=document.getElementById('v-patient-name').value.trim();
   var time=document.getElementById('v-time').value;
   if(!pname||!time){toast('Indiquez le nom du patient');return;}
   var dur=document.getElementById('v-duration').value.split(':');
-  var data={patientName:pname,patientAddress:document.getElementById('v-patient-address').value.trim(),time:time,duration:parseInt(dur[0])*60+parseInt(dur[1]),care:document.getElementById('v-care').value,nurseId:document.getElementById('v-nurse').value,note:document.getElementById('v-note').value.trim(),date:dk(ST.date),createdBy:ST.nurse?ST.nurse.id:''};
+  var durationMin = parseInt(dur[0])*60+parseInt(dur[1]);
+  var nurseId = document.getElementById('v-nurse').value;
+  var dateKey2 = dk(ST.date);
+  // Check conflicts for this nurse
+  var conflicts = checkConflict(nurseId, dateKey2, time, durationMin, ST.editV);
+  if (conflicts.length > 0) {
+    var nextSlot = findNextSlot(nurseId, dateKey2, durationMin);
+    showConflictWarning(conflicts, nextSlot);
+    return;
+  }
+  var data={patientName:pname,patientAddress:document.getElementById('v-patient-address').value.trim(),time:time,duration:durationMin,care:document.getElementById('v-care').value,nurseId:document.getElementById('v-nurse').value,note:document.getElementById('v-note').value.trim(),date:dk(ST.date),createdBy:ST.nurse?ST.nurse.id:''};
   if(ST.editV){set(ref(db,'visits/'+ST.editV),data);toast('Visite modifiee');}
   else{push(ref(db,'visits'),data);toast('Visite ajoutee');}
   document.getElementById('modal-visit').classList.remove('open');
