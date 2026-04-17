@@ -862,13 +862,22 @@ function renderS(){
   var travelSec=Object.entries(ST.travel).filter(function(e){return e[1].done&&ST.visits[e[0]]&&ST.visits[e[0]].date===key;}).reduce(function(a,e){return a+(e[1].elapsed||0);},0);
   var plannedMin=dv.reduce(function(a,e){return a+(e[1].duration||0);},0);
   var realMin=Math.round(totalSec/60), travMin=Math.round(travelSec/60), totMin=realMin+travMin;
-  document.getElementById('stats-grid').innerHTML=
-    '<div class="stat-card"><div class="stat-label">Visites prevues</div><div class="stat-value">'+dv.length+'</div><div class="stat-sub">aujourd\'hui</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Effectuees</div><div class="stat-value">'+done.length+'</div><div class="stat-sub">terminees</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Temps prevu</div><div class="stat-value" style="font-size:20px">'+(plannedMin>0?fmtD(Math.floor(plannedMin/60),plannedMin%60):'-')+'</div><div class="stat-sub">total journee</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Temps soins</div><div class="stat-value" style="font-size:20px">'+(realMin>0?fmtD(Math.floor(realMin/60),realMin%60):'-')+'</div><div class="stat-sub">chronometres</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Temps route</div><div class="stat-value" style="font-size:20px">'+(travMin>0?fmtD(Math.floor(travMin/60),travMin%60):'-')+'</div><div class="stat-sub">trajets mesures</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Temps total</div><div class="stat-value" style="font-size:20px">'+(totMin>0?fmtD(Math.floor(totMin/60),totMin%60):'-')+'</div><div class="stat-sub">soins + route</div></div>';
+  var sg = document.getElementById('stats-grid');
+  sg.innerHTML = '';
+  [
+    {label:'Visites prevues', val:String(dv.length), sub:'ce jour'},
+    {label:'Effectuees', val:String(done.length), sub:'terminees'},
+    {label:'Temps prevu', val:(plannedMin>0?fmtD(Math.floor(plannedMin/60),plannedMin%60):'-'), sub:'total journee'},
+    {label:'Temps soins', val:(realMin>0?fmtD(Math.floor(realMin/60),realMin%60):'-'), sub:'chronometres'},
+    {label:'Temps route', val:(travMin>0?fmtD(Math.floor(travMin/60),travMin%60):'-'), sub:'trajets mesures'},
+    {label:'Temps total', val:(totMin>0?fmtD(Math.floor(totMin/60),totMin%60):'-'), sub:'soins + route'}
+  ].forEach(function(item){
+    var d=document.createElement('div'); d.className='stat-card';
+    var l=document.createElement('div'); l.className='stat-label'; l.textContent=item.label;
+    var v=document.createElement('div'); v.className='stat-value'; v.style.fontSize='20px'; v.textContent=item.val;
+    var s=document.createElement('div'); s.className='stat-sub'; s.textContent=item.sub;
+    d.appendChild(l); d.appendChild(v); d.appendChild(s); sg.appendChild(d);
+  });
   document.getElementById('nurse-stats').innerHTML='<div class="nurse-legend">'+window.NURSES.map(function(n){
     var nv=dv.filter(function(e){return e[1].nurseId===n.id;}).length;
     var nd=done.filter(function(e){return ST.visits[e[0]]&&ST.visits[e[0]].nurseId===n.id;}).length;
