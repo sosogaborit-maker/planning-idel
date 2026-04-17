@@ -566,11 +566,11 @@ function renderP() {
       ac.appendChild(bgo);
     }
     if(toAddr){
-      var bm=document.createElement('button'); bm.className='btn-icon btn-map'; bm.textContent='M';
+      var bm=document.createElement('button'); bm.className='btn-icon btn-map'; bm.textContent='T';
       (function(vid){bm.addEventListener('click',function(){openMaps(vid);});})(id);
       ac.appendChild(bm);
     }
-    var be=document.createElement('button'); be.className='btn-icon'; be.style.background='var(--gray-light)'; be.style.color='var(--gray)'; be.textContent='E';
+    var be=document.createElement('button'); be.className='btn-icon'; be.style.background='var(--gray-light)'; be.style.color='var(--gray)'; be.textContent='M';
     (function(vid){be.addEventListener('click',function(){editVisit(vid);});})(id);
     ac.appendChild(be);
     el.appendChild(card);
