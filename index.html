@@ -791,7 +791,7 @@ function renderS(){
   var plannedMin=dv.reduce(function(a,e){return a+(e[1].duration||0);},0);
   var realMin=Math.round(totalSec/60), travMin=Math.round(travelSec/60), totMin=realMin+travMin;
   document.getElementById('stats-grid').innerHTML=
-    '<div class="stat-card"><div class="stat-label">Visites prevues</div><div class="stat-value">'+dv.length+'</div><div class="stat-sub">aujourd'hui</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Visites prevues</div><div class="stat-value">'+dv.length+'</div><div class="stat-sub">aujourd\'hui</div></div>'+
     '<div class="stat-card"><div class="stat-label">Effectuees</div><div class="stat-value">'+done.length+'</div><div class="stat-sub">terminees</div></div>'+
     '<div class="stat-card"><div class="stat-label">Temps prevu</div><div class="stat-value" style="font-size:20px">'+(plannedMin>0?fmtD(Math.floor(plannedMin/60),plannedMin%60):'-')+'</div><div class="stat-sub">total journee</div></div>'+
     '<div class="stat-card"><div class="stat-label">Temps soins</div><div class="stat-value" style="font-size:20px">'+(realMin>0?fmtD(Math.floor(realMin/60),realMin%60):'-')+'</div><div class="stat-sub">chronometres</div></div>'+
