@@ -309,17 +309,15 @@
     </div>
   </div>
 </div>
-<script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry&callback=onGmapsReady"></script>
+<script type="module">
+window.gmapsLoaded = false;
+window.onGmapsReady = function() { window.gmapsLoaded = true; };
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js').then(function() { console.log('SW registered'); });
   });
 }
-window.gmapsLoaded = false;
-window.gmapsReady = function() { window.gmapsLoaded = true; };
-</script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry&callback=gmapsReady"></script>
-<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -747,7 +745,7 @@ function updateRecurPreview() {
   } else {
     count = days;
   }
-  preview.textContent = 'La visite sera creee sur ' + count + ' jours consecutifs (y compris aujourd''hui)';
+  preview.textContent = 'La visite sera creee sur ' + count + ' jours consecutifs (ce jour inclus)';
 }
 
 function getRecurDates(startDate, nDays, endDate) {
