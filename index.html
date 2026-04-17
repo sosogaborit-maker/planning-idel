@@ -773,8 +773,42 @@ document.getElementById('btn-save-visit').addEventListener('click',function(){
     return;
   }
   var data={patientName:pname,patientAddress:document.getElementById('v-patient-address').value.trim(),time:time,duration:durationMin,care:document.getElementById('v-care').value,nurseId:document.getElementById('v-nurse').value,note:document.getElementById('v-note').value.trim(),date:dk(ST.date),createdBy:ST.nurse?ST.nurse.id:''};
-  if(ST.editV){set(ref(db,'visits/'+ST.editV),data);toast('Visite modifiee');}
-  else{push(ref(db,'visits'),data);toast('Visite ajoutee');}
+  if(ST.editV){
+    set(ref(db,'visits/'+ST.editV),data);
+    toast('Visite modifiee');
+  } else {
+    push(ref(db,'visits'),data);
+    // Auto-create patient fiche if name not already in patients list
+    var nameToCheck = pname.toLowerCase().trim();
+    var alreadyExists = Object.values(ST.patients).some(function(p){
+      return (p.prenom+' '+p.nom).toLowerCase().trim() === nameToCheck;
+    });
+    if(!alreadyExists && pname) {
+      // Split name: first word = prenom, rest = nom
+      var parts = pname.trim().split(' ');
+      var prenom = parts[0] || pname;
+      var nom = parts.slice(1).join(' ') || '';
+      var patData = {
+        prenom: prenom, nom: nom,
+        adresse: document.getElementById('v-patient-address').value.trim(),
+        tel: '', ddn: '', medecin: '', patho: '', notes: ''
+      };
+      push(ref(db,'patients'), patData);
+      toast('Visite ajoutee + fiche patient creee');
+    } else {
+      // Update address in existing patient fiche if address was filled
+      var addr = document.getElementById('v-patient-address').value.trim();
+      if(addr) {
+        var matchEntry = Object.entries(ST.patients).find(function(e){
+          return (e[1].prenom+' '+e[1].nom).toLowerCase().trim() === nameToCheck;
+        });
+        if(matchEntry && !matchEntry[1].adresse) {
+          set(ref(db,'patients/'+matchEntry[0]+'/adresse'), addr);
+        }
+      }
+      toast('Visite ajoutee');
+    }
+  }
   document.getElementById('modal-visit').classList.remove('open');
 });
 document.getElementById('btn-delete-visit').addEventListener('click',function(){
