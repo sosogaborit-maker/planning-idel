@@ -10,489 +10,297 @@
   <meta name="apple-mobile-web-app-title" content="Planning IDEL" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --teal: #0F6E56; --teal-light: #E1F5EE; --teal-dark: #085041;
-      --blue: #185FA5; --blue-light: #E6F1FB;
-      --red: #A32D2D; --red-light: #FCEBEB;
-      --green: #3B6D11; --green-light: #EAF3DE;
-      --amber: #854F0B; --amber-light: #FAEEDA;
-      --gray: #5F5E5A; --gray-light: #F1EFE8; --gray-200: #B4B2A9;
-      --bg: #F8F9FA; --surface: #FFFFFF; --border: rgba(0,0,0,0.1);
-      --text: #1A1A1A; --text-muted: #6B6B6B;
-      --radius: 12px; --radius-sm: 8px;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    html, body { height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
-    body { display: flex; flex-direction: column; overflow: hidden; }
-
-    /* ─── Login Screen ─── */
-    #login-screen {
-      position: fixed; inset: 0; background: var(--teal); display: flex;
-      flex-direction: column; align-items: center; justify-content: center;
-      padding: 2rem; z-index: 1000; transition: opacity 0.3s;
-    }
-    #login-screen.hidden { opacity: 0; pointer-events: none; }
-    .login-logo { width: 72px; height: 72px; background: rgba(255,255,255,0.15); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
-    .login-logo svg { width: 40px; height: 40px; stroke: white; }
-    #login-screen h1 { color: white; font-size: 24px; font-weight: 600; margin-bottom: 4px; }
-    #login-screen p { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 2rem; }
-    .login-card { background: white; border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 340px; }
-    .login-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text); }
-    .nurse-btn { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      background: white; text-align: left; cursor: pointer; font-family: 'Inter', sans-serif;
-      font-size: 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
-      transition: border-color 0.15s, background 0.15s; }
-    .nurse-btn:hover { border-color: var(--teal); background: var(--teal-light); }
-    .nurse-btn .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
-    .nurse-btn .name { font-weight: 500; }
-    .nurse-btn .role { font-size: 12px; color: var(--text-muted); }
-    .pin-section { margin-top: 1rem; display: none; }
-    .pin-section label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
-    .pin-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      font-size: 20px; letter-spacing: 8px; text-align: center; font-family: monospace;
-      outline: none; transition: border-color 0.15s; }
-    .pin-input:focus { border-color: var(--teal); }
-    .btn-login { width: 100%; padding: 12px; background: var(--teal); color: white; border: none;
-      border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer;
-      margin-top: 10px; font-family: 'Inter', sans-serif; transition: background 0.15s; }
-    .btn-login:hover { background: var(--teal-dark); }
-    .pin-error { font-size: 12px; color: var(--red); margin-top: 6px; text-align: center; display: none; }
-
-    /* ─── App Shell ─── */
-    #app { display: flex; flex-direction: column; height: 100%; }
-    .topbar { background: var(--teal); color: white; padding: 12px 16px;
-      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-      padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
-    .topbar-left { display: flex; align-items: center; gap: 10px; }
-    .topbar-logo { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; }
-    .topbar-logo svg { width: 18px; height: 18px; stroke: white; }
-    .topbar h1 { font-size: 16px; font-weight: 600; }
-    .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.85); }
-    .topbar-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4);
-      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
-    .btn-logout { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer;
-      font-size: 20px; line-height: 1; padding: 2px 4px; }
-
-    .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .tab-panel { display: none; padding: 1rem; padding-bottom: calc(80px + var(--safe-bottom)); }
-    .tab-panel.active { display: block; }
-
-    /* ─── Bottom Nav ─── */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white;
-      border-top: 1px solid var(--border); display: flex;
-      padding-bottom: var(--safe-bottom); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.06); }
-    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 8px 0; border: none; background: none; cursor: pointer;
-      font-family: 'Inter', sans-serif; color: var(--text-muted); font-size: 11px; gap: 3px;
-      transition: color 0.15s; }
-    .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-    .nav-btn.active { color: var(--teal); }
-    .nav-btn.active svg { stroke-width: 2.2; }
-
-    /* ─── Cards ─── */
-    .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
-      border: 1px solid var(--border); margin-bottom: 10px; }
-    .section-header { display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px; }
-    .section-title { font-size: 14px; font-weight: 500; color: var(--text-muted); }
-
-    /* ─── Planning ─── */
-    .date-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; background: white;
-      border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow); border: 1px solid var(--border); }
-    .date-nav button { background: var(--gray-light); border: none; border-radius: 6px;
-      width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-    .date-nav .date-label { flex: 1; text-align: center; font-size: 14px; font-weight: 500; }
-    .btn-today { background: var(--teal-light); color: var(--teal); border: none; border-radius: 6px;
-      padding: 4px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; }
-
-    .visit-card { background: white; border-radius: var(--radius); padding: 12px 14px;
-      margin-bottom: 10px; box-shadow: var(--shadow); border: 1px solid var(--border);
-      display: flex; align-items: flex-start; gap: 12px; }
-    .visit-card.running { border-color: var(--teal); background: var(--teal-light); }
-    .visit-card.done { border-color: var(--gray-200); opacity: 0.75; }
-    .visit-time-col { text-align: center; min-width: 44px; }
-    .visit-time-col .hour { font-size: 16px; font-weight: 600; color: var(--text); display: block; }
-    .visit-time-col .ampm { font-size: 11px; color: var(--text-muted); }
-    .visit-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
-    .visit-body { flex: 1; min-width: 0; }
-    .visit-name { font-size: 14px; font-weight: 500; }
-    .visit-address { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-    .visit-tags { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
-    .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-    .tag-care { background: var(--blue-light); color: var(--blue); }
-    .tag-nurse { background: var(--amber-light); color: var(--amber); }
-    .tag-done { background: var(--gray-light); color: var(--gray); }
-    .visit-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
-    .timer-val { font-size: 14px; font-weight: 600; color: var(--teal); font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
-    .btn-icon { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 16px; }
-    .btn-start { background: var(--green-light); color: var(--green); }
-    .btn-stop { background: var(--red-light); color: var(--red); }
-    .btn-map { background: var(--blue-light); color: var(--blue); }
-    .btn-delete { background: var(--red-light); color: var(--red); }
-    .duration-pill { font-size: 11px; background: var(--gray-light); color: var(--gray);
-      padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-
-    .btn-fab { position: fixed; bottom: calc(68px + var(--safe-bottom)); right: 16px;
-      width: 52px; height: 52px; border-radius: 50%; background: var(--teal); color: white;
-      border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 14px rgba(15,110,86,0.4);
-      display: flex; align-items: center; justify-content: center; z-index: 99; }
-    .btn-fab:active { transform: scale(0.95); }
-
-    /* ─── Patients ─── */
-    .search-bar { background: white; border-radius: var(--radius); padding: 10px 14px;
-      margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px; }
-    .search-bar svg { width: 18px; height: 18px; stroke: var(--text-muted); flex-shrink: 0; }
-    .search-bar input { flex: 1; border: none; outline: none; font-size: 14px; background: none; font-family: 'Inter', sans-serif; }
-    .patient-card { background: white; border-radius: var(--radius); padding: 14px;
-      margin-bottom: 10px; box-shadow: var(--shadow); border: 1px solid var(--border); }
-    .patient-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .patient-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
-    .patient-name { font-size: 15px; font-weight: 600; }
-    .patient-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .info-item { display: flex; flex-direction: column; gap: 2px; }
-    .info-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-    .info-value { font-size: 13px; color: var(--text); }
-    .info-full { grid-column: 1 / -1; }
-    .btn-map-link { background: var(--blue-light); color: var(--blue); border: none; border-radius: 6px;
-      padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 6px;
-      font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
-    .card-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .btn-small { flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-      background: none; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif;
-      display: flex; align-items: center; justify-content: center; gap: 5px; }
-
-    /* ─── Stats ─── */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .stat-card { background: white; border-radius: var(--radius); padding: 14px;
-      box-shadow: var(--shadow); border: 1px solid var(--border); }
-    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-    .stat-value { font-size: 28px; font-weight: 600; color: var(--text); margin: 4px 0 2px; }
-    .stat-sub { font-size: 11px; color: var(--text-muted); }
-    .history-item { display: flex; align-items: center; gap: 10px; padding: 10px 0;
-      border-bottom: 1px solid var(--border); font-size: 13px; }
-    .history-item:last-child { border-bottom: none; }
-    .nurse-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .nurse-badge { display: flex; align-items: center; gap: 6px; padding: 5px 10px;
-      border-radius: 20px; font-size: 12px; font-weight: 500; }
-
-    /* ─── Modal ─── */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200;
-      align-items: flex-end; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; border-radius: 20px 20px 0 0; width: 100%; max-height: 92vh;
-      overflow-y: auto; padding: 1.25rem 1.25rem calc(1.5rem + var(--safe-bottom)); }
-    .modal-handle { width: 40px; height: 4px; background: var(--gray-200); border-radius: 2px;
-      margin: 0 auto 1.25rem; }
-    .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 1.25rem; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      font-size: 14px; font-family: 'Inter', sans-serif; outline: none; background: white;
-      color: var(--text); transition: border-color 0.15s; -webkit-appearance: none; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--teal); }
-    .form-group textarea { height: 70px; resize: none; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
-    .btn-cancel { flex: 1; padding: 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      background: none; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif; color: var(--text); }
-    .btn-save { flex: 2; padding: 13px; background: var(--teal); color: white; border: none;
-      border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
-    .btn-danger { flex: 1; padding: 13px; background: var(--red-light); color: var(--red); border: none;
-      border-radius: var(--radius-sm); font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; }
-
-    /* ─── Toast ─── */
-    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
-      background: var(--text); color: white; padding: 10px 18px; border-radius: 20px;
-      font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-
-    /* ─── Misc ─── */
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 14px; line-height: 1.8; }
-    .empty-state svg { width: 48px; height: 48px; stroke: var(--gray-200); margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; }
-    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-200); display: inline-block; margin-left: 6px; }
-    .sync-dot.live { background: #4ade80; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 14px; }
-    .visit-card { cursor: grab; }
-    .visit-card.dragging { opacity: 0.4; border: 2px dashed var(--teal); }
-    .visit-card.drag-over { border-top: 3px solid var(--teal); }
-    .btn-parcours { display: flex; align-items: center; gap: 8px; background: var(--teal); color: white;
-      border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600;
-      cursor: pointer; font-family: "Inter", sans-serif; margin-bottom: 12px; width: 100%; justify-content: center; }
-    .btn-parcours:active { opacity: 0.85; }
-    .drag-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 8px; }
-    .travel-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
-      background: var(--amber-light); border-radius: var(--radius-sm); margin-bottom: 8px;
-      border: 1px solid rgba(133,79,11,0.2); }
-    .travel-bar .travel-label { font-size: 12px; color: var(--amber); font-weight: 500; flex: 1; }
-    .travel-bar .travel-time { font-size: 13px; font-weight: 600; color: var(--amber); font-variant-numeric: tabular-nums; }
-    .travel-bar .btn-travel { background: var(--amber); color: white; border: none; border-radius: 6px;
-      padding: 5px 10px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: Inter,sans-serif; }
-    .travel-est { font-size: 11px; color: var(--amber); opacity: 0.8; }
-    .btn-map-route { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--teal:#0F6E56;--teal-light:#E1F5EE;--teal-dark:#085041;--blue:#185FA5;--blue-light:#E6F1FB;--red:#A32D2D;--red-light:#FCEBEB;--green:#3B6D11;--green-light:#EAF3DE;--amber:#854F0B;--amber-light:#FAEEDA;--gray:#5F5E5A;--gray-light:#F1EFE8;--gray-200:#B4B2A9;--bg:#F8F9FA;--surface:#fff;--border:rgba(0,0,0,0.1);--text:#1A1A1A;--text-muted:#6B6B6B;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,0.08);--safe-bottom:env(safe-area-inset-bottom,0px)}
+    html,body{height:100%;background:var(--bg);font-family:Inter,sans-serif;color:var(--text)}
+    body{display:flex;flex-direction:column;overflow:hidden}
+    #login-screen{position:fixed;inset:0;background:var(--teal);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;z-index:1000;transition:opacity 0.3s}
+    #login-screen.hidden{opacity:0;pointer-events:none}
+    .login-logo{width:72px;height:72px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem}
+    .login-logo svg{width:40px;height:40px;stroke:white}
+    #login-screen h1{color:white;font-size:24px;font-weight:600;margin-bottom:4px}
+    #login-screen p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:2rem}
+    .login-card{background:white;border-radius:16px;padding:1.5rem;width:100%;max-width:340px}
+    .login-card h2{font-size:16px;font-weight:600;margin-bottom:1.25rem}
+    .nurse-btn{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;text-align:left;cursor:pointer;font-family:Inter,sans-serif;font-size:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .nurse-btn .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+    .nurse-btn .name{font-weight:500}
+    .nurse-btn .role{font-size:12px;color:var(--text-muted)}
+    .pin-section{margin-top:1rem;display:none}
+    .pin-section label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px}
+    .pin-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:20px;letter-spacing:8px;text-align:center;font-family:monospace;outline:none}
+    .btn-login{width:100%;padding:12px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:Inter,sans-serif}
+    .pin-error{font-size:12px;color:var(--red);margin-top:6px;text-align:center;display:none}
+    #app{display:flex;flex-direction:column;height:100%}
+    .topbar{background:var(--teal);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+    .topbar-left{display:flex;align-items:center;gap:10px}
+    .topbar-logo{width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .topbar-logo svg{width:18px;height:18px;stroke:white}
+    .topbar h1{font-size:16px;font-weight:600}
+    .topbar-user{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.85)}
+    .topbar-avatar{width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+    .btn-logout{background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:20px;line-height:1;padding:2px 4px}
+    .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .tab-panel{display:none;padding:1rem;padding-bottom:calc(80px + var(--safe-bottom))}
+    .tab-panel.active{display:block}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
+    .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;border:none;background:none;cursor:pointer;font-family:Inter,sans-serif;color:var(--text-muted);font-size:11px;gap:3px}
+    .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .nav-btn.active{color:var(--teal)}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .section-title{font-size:14px;font-weight:500;color:var(--text-muted)}
+    .date-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px;background:white;border-radius:var(--radius);padding:10px 14px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .date-nav button{background:var(--gray-light);border:none;border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+    .date-nav .date-label{flex:1;text-align:center;font-size:14px;font-weight:500}
+    .btn-today{background:var(--teal-light);color:var(--teal);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif}
+    .visit-card{background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;cursor:grab}
+    .visit-card.running{border-color:var(--teal);background:var(--teal-light)}
+    .visit-card.done{border-color:var(--gray-200);opacity:0.75}
+    .visit-card.dragging{opacity:0.4;border:2px dashed var(--teal)}
+    .visit-card.drag-over{border-top:3px solid var(--teal)}
+    .visit-time-col{text-align:center;min-width:44px}
+    .visit-time-col .hour{font-size:16px;font-weight:600;color:var(--text);display:block}
+    .visit-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+    .visit-body{flex:1;min-width:0}
+    .visit-name{font-size:14px;font-weight:500}
+    .visit-address{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .visit-tags{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+    .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+    .tag-care{background:var(--blue-light);color:var(--blue)}
+    .tag-nurse{background:var(--amber-light);color:var(--amber)}
+    .tag-done{background:var(--gray-light);color:var(--gray)}
+    .visit-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+    .timer-val{font-size:14px;font-weight:600;color:var(--teal);font-variant-numeric:tabular-nums;min-width:50px;text-align:right}
+    .btn-icon{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .btn-start{background:var(--green-light);color:var(--green)}
+    .btn-stop{background:var(--red-light);color:var(--red)}
+    .btn-map{background:var(--blue-light);color:var(--blue)}
+    .duration-pill{font-size:11px;background:var(--gray-light);color:var(--gray);padding:2px 8px;border-radius:20px;font-weight:500}
+    .btn-fab{position:fixed;bottom:calc(68px + var(--safe-bottom));right:16px;width:52px;height:52px;border-radius:50%;background:var(--teal);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 14px rgba(15,110,86,0.4);display:flex;align-items:center;justify-content:center;z-index:99}
+    .btn-parcours{display:flex;align-items:center;gap:8px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;width:100%;justify-content:center}
+    .drag-hint{font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:8px}
+    .travel-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--amber-light);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid rgba(133,79,11,0.2)}
+    .travel-label{font-size:12px;color:var(--amber);font-weight:500;flex:1}
+    .travel-time{font-size:13px;font-weight:600;color:var(--amber);font-variant-numeric:tabular-nums}
+    .btn-travel{background:var(--amber);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-left:4px}
+    .btn-travel-outline{background:white;color:var(--amber);border:1px solid var(--amber);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-left:4px}
+    .search-bar{background:white;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .search-bar svg{width:18px;height:18px;stroke:var(--text-muted);flex-shrink:0}
+    .search-bar input{flex:1;border:none;outline:none;font-size:14px;background:none;font-family:Inter,sans-serif}
+    .patient-card{background:white;border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .patient-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .patient-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;flex-shrink:0}
+    .patient-name{font-size:15px;font-weight:600}
+    .patient-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .info-item{display:flex;flex-direction:column;gap:2px}
+    .info-label{font-size:11px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+    .info-value{font-size:13px;color:var(--text)}
+    .info-full{grid-column:1/-1}
+    .card-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+    .btn-small{flex:1;padding:7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:none;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .stat-card{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+    .stat-value{font-size:24px;font-weight:600;color:var(--text);margin:4px 0 2px}
+    .stat-sub{font-size:11px;color:var(--text-muted)}
+    .history-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .history-item:last-child{border-bottom:none}
+    .nurse-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .nurse-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:500}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:white;border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:1.25rem 1.25rem calc(1.5rem + var(--safe-bottom))}
+    .modal-handle{width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 1.25rem}
+    .modal h2{font-size:18px;font-weight:600;margin-bottom:1.25rem}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);-webkit-appearance:none}
+    .form-group textarea{height:70px;resize:none}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modal-actions{display:flex;gap:10px;margin-top:1.25rem}
+    .btn-cancel{flex:1;padding:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:none;font-size:15px;cursor:pointer;font-family:Inter,sans-serif;color:var(--text)}
+    .btn-save{flex:2;padding:13px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
+    .btn-danger{flex:1;padding:13px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif}
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s ease}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:14px;line-height:1.8}
+    .empty-state svg{width:48px;height:48px;stroke:var(--gray-200);margin-bottom:1rem;display:block;margin-left:auto;margin-right:auto}
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-200);display:inline-block;margin-left:6px}
+    .sync-dot.live{background:#4ade80;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .loading{text-align:center;padding:2rem;color:var(--text-muted);font-size:14px}
+    .patient-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--teal);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+    .pdd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border)}
+    .pdd-item:hover{background:var(--teal-light)}
+    .pdd-item:last-child{border-bottom:none}
   </style>
 </head>
 <body>
-
-<!-- Login -->
 <div id="login-screen">
-  <div class="login-logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
-      <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="1" fill="white" stroke="none"/>
-    </svg>
-  </div>
+  <div class="login-logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
   <h1>Planning IDEL</h1>
-  <p>Application infirmière libérale</p>
+  <p>Application infirmiere liberale</p>
   <div class="login-card">
     <h2>Choisissez votre profil</h2>
     <div id="nurse-buttons"></div>
     <div class="pin-section" id="pin-section">
       <label>Code PIN (4 chiffres)</label>
-      <input type="password" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-      <div class="pin-error" id="pin-error">Code incorrect. Réessayez.</div>
-      <button class="btn-login" onclick="validatePin()">Se connecter</button>
+      <input type="tel" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="..." />
+      <div class="pin-error" id="pin-error">Code incorrect. Reessayez.</div>
+      <button class="btn-login" id="btn-login">Se connecter</button>
     </div>
   </div>
 </div>
-
-<!-- App -->
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="topbar-logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/>
-          <path d="M12 8v4l3 3"/>
-        </svg>
-      </div>
+      <div class="topbar-logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
       <h1>Planning IDEL <span class="sync-dot" id="sync-dot"></span></h1>
     </div>
     <div class="topbar-user">
       <span id="topbar-name"></span>
       <div class="topbar-avatar" id="topbar-avatar"></div>
-      <button class="btn-logout" onclick="openSettings()" title="Paramètres" style="font-size:18px;">⚙</button>
-      <button class="btn-logout" onclick="logout()" title="Déconnexion">↩</button>
+      <button class="btn-logout" id="btn-settings" title="Parametres" style="font-size:18px">&#9881;</button>
+      <button class="btn-logout" id="btn-logout" title="Deconnexion">&#8617;</button>
     </div>
   </div>
-
   <div class="content">
-    <!-- Planning Tab -->
     <div class="tab-panel active" id="panel-planning">
       <div class="date-nav">
-        <button onclick="changeDay(-1)">‹</button>
+        <button id="btn-prev">&#8249;</button>
         <div class="date-label" id="date-label"></div>
-        <button class="btn-today" onclick="goToday()">Auj.</button>
-        <button onclick="changeDay(1)">›</button>
+        <button class="btn-today" id="btn-today">Auj.</button>
+        <button id="btn-next">&#8250;</button>
       </div>
-      <div class="section-header">
-        <span class="section-title" id="visit-count-label">Visites</span>
-      </div>
-      <button class="btn-parcours" id="btn-parcours" onclick="openParcours()" style="display:none">🗺 Lancer le parcours du jour</button>
-      <div class="drag-hint" id="drag-hint" style="display:none">Maintenez et glissez pour réordonner</div>
+      <div class="section-header"><span class="section-title" id="visit-count-label">Visites</span></div>
+      <button class="btn-parcours" id="btn-parcours" style="display:none">&#128506; Lancer le parcours du jour</button>
+      <div class="drag-hint" id="drag-hint" style="display:none">Maintenez et glissez pour reordonner</div>
       <div id="visits-container"><div class="loading">Chargement...</div></div>
     </div>
-
-    <!-- Patients Tab -->
     <div class="tab-panel" id="panel-patients">
       <div class="section-header">
         <span class="section-title" id="patients-count-label">Patients</span>
-        <button class="btn-small" style="flex:0;padding:6px 12px;" onclick="openPatientModal()">+ Ajouter</button>
+        <button class="btn-small" style="flex:0;padding:6px 12px" id="btn-add-patient">+ Ajouter</button>
       </div>
       <div class="search-bar">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" placeholder="Rechercher..." oninput="filterPatients(this.value)" id="patient-search" />
+        <input type="text" placeholder="Rechercher..." id="patient-search" />
       </div>
       <div id="patients-container"><div class="loading">Chargement...</div></div>
     </div>
-
-    <!-- Stats Tab -->
     <div class="tab-panel" id="panel-stats">
       <div class="section-header"><span class="section-title">Bilan du jour</span></div>
       <div class="stats-grid" id="stats-grid"></div>
-      <div class="section-header"><span class="section-title">Par infirmière</span></div>
+      <div class="section-header"><span class="section-title">Par infirmiere</span></div>
       <div id="nurse-stats"></div>
-      <div class="section-header" style="margin-top:14px"><span class="section-title">Visites effectuées</span></div>
-      <div class="card" style="padding:0 14px">
-        <div id="history-container"><div class="loading">Chargement...</div></div>
-      </div>
+      <div class="section-header" style="margin-top:14px"><span class="section-title">Visites effectuees</span></div>
+      <div class="card" style="padding:0 14px"><div id="history-container"><div class="loading">Chargement...</div></div></div>
     </div>
   </div>
-
-  <!-- Bottom Nav -->
   <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="switchTab('planning')" id="nav-planning">
-      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Planning
+    <button class="nav-btn active" id="nav-planning">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Planning
     </button>
-    <button class="nav-btn" onclick="switchTab('patients')" id="nav-patients">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Patients
+    <button class="nav-btn" id="nav-patients">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Patients
     </button>
-    <button class="nav-btn" onclick="switchTab('stats')" id="nav-stats">
-      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      Bilan
+    <button class="nav-btn" id="nav-stats">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Bilan
     </button>
   </nav>
-
-  <!-- FAB -->
-  <button class="btn-fab" onclick="openVisitModal()" id="fab" title="Ajouter une visite">+</button>
+  <button class="btn-fab" id="fab">+</button>
 </div>
-
-<!-- Modal Carte Trajet -->
 <div class="modal-overlay" id="modal-map">
-  <div class="modal" style="max-height:92vh;padding-bottom:1rem;">
+  <div class="modal">
     <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <h2 style="margin:0;font-size:16px;" id="map-modal-title">Trajet</h2>
-      <button class="btn-cancel" style="flex:0;padding:6px 12px;" onclick="closeMapModal()">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:16px" id="map-modal-title">Trajet</h2>
+      <button class="btn-cancel" style="flex:0;padding:6px 12px" id="btn-close-map">X</button>
     </div>
-    <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber);" id="map-info"></div>
-    <div id="map-container" style="width:100%;height:340px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn-save" style="flex:1;" id="btn-open-gmaps" onclick="openGmapsFromModal()">🗺 Ouvrir Google Maps</button>
-    </div>
+    <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber)" id="map-info"></div>
+    <div id="map-container" style="width:100%;height:300px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)"></div>
+    <div style="margin-top:12px"><button class="btn-save" style="width:100%" id="btn-open-gmaps">Ouvrir Google Maps</button></div>
   </div>
 </div>
-
-<!-- Modal Paramètres infirmières -->
 <div class="modal-overlay" id="modal-settings">
   <div class="modal">
     <div class="modal-handle"></div>
-    <h2>Paramètres des infirmières</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Modifiez les prénoms, codes PIN et adresse domicile. Les changements s'appliquent sur tous les téléphones.</p>
+    <h2>Parametres</h2>
     <div id="nurses-settings-list"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSettings()">Annuler</button>
-      <button class="btn-save" onclick="saveSettings()">Enregistrer</button>
+      <button class="btn-cancel" id="btn-cancel-settings">Annuler</button>
+      <button class="btn-save" id="btn-save-settings">Enregistrer</button>
     </div>
   </div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
-
-<!-- Modal Visite -->
 <div class="modal-overlay" id="modal-visit">
   <div class="modal">
     <div class="modal-handle"></div>
     <h2 id="modal-visit-title">Nouvelle visite</h2>
     <div class="form-group">
-      <label>Nom du patient</label>
-      <div style="position:relative;">
-        <input type="text" id="v-patient-name" placeholder="Rechercher un patient..." autocomplete="off"
-          oninput="searchPatients(this.value)" onfocus="searchPatients(this.value)"
-          style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);" />
-        <div id="patient-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--teal);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+      <label>Patient</label>
+      <div style="position:relative">
+        <input type="text" id="v-patient-name" placeholder="Rechercher un patient..." autocomplete="off" style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text)" />
+        <div class="patient-dropdown" id="patient-dropdown"></div>
       </div>
     </div>
-    <div class="form-group">
-      <label>Adresse</label>
-      <input type="text" id="v-patient-address" placeholder="12 rue des Lilas, 64000 Pau" autocomplete="off" />
-    </div>
+    <div class="form-group"><label>Adresse</label><input type="text" id="v-patient-address" placeholder="12 rue des Lilas, 64000 Pau" autocomplete="off" /></div>
     <div class="form-row">
-      <div class="form-group">
-        <label>Heure</label>
-        <input type="time" id="v-time" value="08:00" />
-      </div>
-      <div class="form-group">
-        <label>Durée réelle (hh:mm)</label>
-        <input type="time" id="v-duration" value="00:30" min="00:05" max="04:00" />
-      </div>
+      <div class="form-group"><label>Heure</label><input type="time" id="v-time" value="08:00" /></div>
+      <div class="form-group"><label>Duree (hh:mm)</label><input type="time" id="v-duration" value="00:30" /></div>
     </div>
-    <div class="form-group">
-      <label>Type de soin</label>
-      <select id="v-care">
-        <option>Pansement</option>
-        <option>Injection</option>
-        <option>Prise de sang</option>
-        <option>Perfusion</option>
-        <option>Toilette</option>
-        <option>Surveillance</option>
-        <option>Glycémie</option>
-        <option>Soins divers</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Attribuée à</label>
-      <select id="v-nurse"></select>
-    </div>
-    <div class="form-group">
-      <label>Note</label>
-      <textarea id="v-note" placeholder="Observations, matériel..."></textarea>
-    </div>
+    <div class="form-group"><label>Type de soin</label><select id="v-care"><option>Pansement</option><option>Injection</option><option>Prise de sang</option><option>Perfusion</option><option>Toilette</option><option>Surveillance</option><option>Glycemie</option><option>Soins divers</option></select></div>
+    <div class="form-group"><label>Attribuee a</label><select id="v-nurse"></select></div>
+    <div class="form-group"><label>Note</label><textarea id="v-note" placeholder="Observations, materiel..."></textarea></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeVisitModal()">Annuler</button>
-      <button class="btn-danger" id="btn-delete-visit" onclick="deleteVisit()" style="display:none">Suppr.</button>
-      <button class="btn-save" onclick="saveVisit()">Enregistrer</button>
+      <button class="btn-cancel" id="btn-cancel-visit">Annuler</button>
+      <button class="btn-danger" id="btn-delete-visit" style="display:none">Suppr.</button>
+      <button class="btn-save" id="btn-save-visit">Enregistrer</button>
     </div>
   </div>
 </div>
-
-<!-- Modal Patient -->
 <div class="modal-overlay" id="modal-patient">
   <div class="modal">
     <div class="modal-handle"></div>
     <h2 id="modal-patient-title">Nouveau patient</h2>
     <div class="form-row">
-      <div class="form-group"><label>Prénom</label><input type="text" id="p-prenom" placeholder="Prénom" /></div>
+      <div class="form-group"><label>Prenom</label><input type="text" id="p-prenom" placeholder="Prenom" /></div>
       <div class="form-group"><label>Nom</label><input type="text" id="p-nom" placeholder="Nom" /></div>
     </div>
-    <div class="form-group"><label>Adresse complète</label><input type="text" id="p-adresse" placeholder="12 rue des Lilas, 64000 Pau" /></div>
+    <div class="form-group"><label>Adresse complete</label><input type="text" id="p-adresse" placeholder="12 rue des Lilas, 64000 Pau" /></div>
     <div class="form-row">
-      <div class="form-group"><label>Téléphone</label><input type="tel" id="p-tel" placeholder="06..." /></div>
+      <div class="form-group"><label>Telephone</label><input type="tel" id="p-tel" placeholder="06..." /></div>
       <div class="form-group"><label>Date de naissance</label><input type="date" id="p-ddn" /></div>
     </div>
-
-    <div class="form-group"><label>Médecin traitant</label><input type="text" id="p-medecin" placeholder="Dr..." /></div>
-    <div class="form-group"><label>Pathologie / Soins habituels</label><input type="text" id="p-patho" placeholder="Diabète, plaie chronique..." /></div>
-    <div class="form-group"><label>Allergies & Notes importantes</label><textarea id="p-notes" placeholder="Allergie pénicilline, anticoagulants..."></textarea></div>
+    <div class="form-group"><label>Medecin traitant</label><input type="text" id="p-medecin" placeholder="Dr..." /></div>
+    <div class="form-group"><label>Pathologie / Soins habituels</label><input type="text" id="p-patho" placeholder="Diabete, plaie chronique..." /></div>
+    <div class="form-group"><label>Allergies et Notes importantes</label><textarea id="p-notes" placeholder="Allergie penicilline, anticoagulants..."></textarea></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closePatientModal()">Annuler</button>
-      <button class="btn-danger" id="btn-delete-patient" onclick="deletePatient()" style="display:none">Suppr.</button>
-      <button class="btn-save" onclick="savePatient()">Enregistrer</button>
+      <button class="btn-cancel" id="btn-cancel-patient">Annuler</button>
+      <button class="btn-danger" id="btn-delete-patient" style="display:none">Suppr.</button>
+      <button class="btn-save" id="btn-save-patient">Enregistrer</button>
     </div>
   </div>
 </div>
-
-<!-- Service Worker -->
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log('SW registered'))
-        .catch(e => console.log('SW error', e));
-    });
-  }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function() { console.log('SW registered'); });
+  });
+}
+window.gmapsLoaded = false;
+window.gmapsReady = function() { window.gmapsLoaded = true; };
 </script>
-
-<!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry" async defer></script>
-
-<!-- Firebase SDK -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry&callback=gmapsReady"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove, serverTimestamp, onDisconnect }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ══════════════════════════════════════════
-//  🔥 CONFIGURATION FIREBASE — À MODIFIER
-// ══════════════════════════════════════════
-const firebaseConfig = {
+var FC = {
   apiKey: "AIzaSyBMQFFat0fnPHR91ws-V5XiuIeBwWwgeEI",
   authDomain: "planning-infirmiere-ac9da.firebaseapp.com",
   databaseURL: "https://planning-infirmiere-ac9da-default-rtdb.europe-west1.firebasedatabase.app",
@@ -501,955 +309,567 @@ const firebaseConfig = {
   messagingSenderId: "351035421949",
   appId: "1:351035421949:web:1c4438e8b4f1d38019ba94"
 };
-// ══════════════════════════════════════════
 
-// ── Nurses config (modifiable depuis l'app) ──
-const DEFAULT_NURSES = [
-  { id: 'n1', name: 'Anne',    pin: '1234', colors: { bg:'#E1F5EE', color:'#0F6E56' } },
-  { id: 'n2', name: 'Sophie',  pin: '2345', colors: { bg:'#E6F1FB', color:'#185FA5' } },
-  { id: 'n3', name: 'Claire',  pin: '3456', colors: { bg:'#FAEEDA', color:'#854F0B' } },
+var DN = [
+  { id: 'n1', name: 'Anne',   pin: '1234', colors: { bg: '#E1F5EE', color: '#0F6E56' } },
+  { id: 'n2', name: 'Sophie', pin: '2345', colors: { bg: '#E6F1FB', color: '#185FA5' } },
+  { id: 'n3', name: 'Claire', pin: '3456', colors: { bg: '#FAEEDA', color: '#854F0B' } }
 ];
+
 function loadNurses() {
   try {
-    const saved = localStorage.getItem('nurses_config');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return DEFAULT_NURSES.map((d, i) => ({ ...d, ...parsed[i] }));
-    }
+    var s = localStorage.getItem('nurses_config');
+    if (s) { var p = JSON.parse(s); return DN.map(function(d,i){ return Object.assign({},d,p[i]); }); }
   } catch(e) {}
-  return DEFAULT_NURSES;
+  return DN.slice();
 }
 window.NURSES = loadNurses();
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-window.db = db;
-window.dbRef = ref;
-window.dbSet = set;
-window.dbPush = push;
-window.dbRemove = remove;
-window.dbServerTimestamp = serverTimestamp;
-window.dbOnValue = onValue;
+var app = initializeApp(FC);
+var db = getDatabase(app);
 
-// Sync indicator
-const connRef = ref(db, '.info/connected');
-onValue(connRef, (snap) => {
-  const dot = document.getElementById('sync-dot');
+onValue(ref(db, '.info/connected'), function(snap) {
+  var dot = document.getElementById('sync-dot');
   if (dot) dot.className = 'sync-dot' + (snap.val() ? ' live' : '');
 });
 
-// ── State ──
-window.currentNurse = null;
-window.selectedNurseId = null;
-window.currentDate = new Date();
-window.visits = {};
-window.patients = {};
-window.timers = {};
-window.timerIntervals = {};
-window.completedToday = [];
-window.currentTab = 'planning';
-window.editingVisitId = null;
-window.editingPatientId = null;
-window.travelTimers = {};
-window.travelIntervals = {};
-window.travelEstimates = {};
+var ST = {
+  nurse: null, selNurse: null, date: new Date(),
+  visits: {}, patients: {}, timers: {}, timerI: {},
+  travel: {}, travelI: {}, travelEst: {},
+  done: [], order: [], editV: null, editP: null,
+  mapFrom: '', mapTo: ''
+};
 
-// Listen to Firebase
-function listenData() {
-  onValue(ref(db, 'visits'), snap => {
-    window.visits = snap.val() || {};
-    renderPlanning();
-    renderStats();
+function ini(n) { return (n||'?').split(' ').map(function(p){return p[0]||'';}).join('').toUpperCase().slice(0,2); }
+function fmt(s) { var m=Math.floor(s/60),x=s%60; return pad(m)+':'+pad(x); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function dk(d) { return d.toISOString().slice(0,10); }
+function home() { try { return JSON.parse(localStorage.getItem('nh_'+(ST.nurse?ST.nurse.id:''))||'""')||''; } catch(e){return '';} }
+function fmtD(h,m) { return h>0?h+'h'+pad(m):m+'min'; }
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');}, 2800);
+}
+
+function listen() {
+  onValue(ref(db,'visits'), function(s){ ST.visits=s.val()||{}; renderP(); renderS(); });
+  onValue(ref(db,'patients'), function(s){ ST.patients=s.val()||{}; renderPat(); });
+  onValue(ref(db,'timers'), function(s){
+    var r=s.val()||{};
+    Object.keys(r).forEach(function(k){ if(!ST.timers[k]||!ST.timers[k].running) ST.timers[k]=r[k]; });
+    renderP();
   });
-  onValue(ref(db, 'patients'), snap => {
-    window.patients = snap.val() || {};
-    renderPatients();
+  onValue(ref(db,'travel'), function(s){
+    var r=s.val()||{};
+    Object.keys(r).forEach(function(k){ if(!ST.travel[k]||!ST.travel[k].running) ST.travel[k]=r[k]; });
+    renderP();
   });
-  onValue(ref(db, 'timers'), snap => {
-    const remote = snap.val() || {};
-    // Merge: keep local running, sync done from remote
-    Object.entries(remote).forEach(([vid, t]) => {
-      if (!window.timers[vid] || !window.timers[vid].running) {
-        window.timers[vid] = t;
-      }
-    });
-    renderPlanning();
+  onValue(ref(db,'nurses_config'), function(s){
+    var r=s.val();
+    if(r){ localStorage.setItem('nurses_config',JSON.stringify(r)); window.NURSES=DN.map(function(d,i){return Object.assign({},d,r[i]||{});}); }
   });
 }
 
-window.startListening = listenData;
+function buildLogin() {
+  var c = document.getElementById('nurse-buttons'); c.innerHTML = '';
+  window.NURSES.forEach(function(n){
+    var btn=document.createElement('button'); btn.className='nurse-btn'; btn.dataset.nurse=n.id;
+    var av=document.createElement('div'); av.className='avatar'; av.style.background=n.colors.bg; av.style.color=n.colors.color; av.textContent=n.name[0];
+    var inf=document.createElement('div');
+    var nm=document.createElement('div'); nm.className='name'; nm.textContent=n.name;
+    var rl=document.createElement('div'); rl.className='role'; rl.textContent='Infirmiere liberale';
+    inf.appendChild(nm); inf.appendChild(rl); btn.appendChild(av); btn.appendChild(inf);
+    btn.addEventListener('click', function(){ selNurse(n.id); });
+    c.appendChild(btn);
+  });
+}
 
-// ── Auth ──
-window.selectNurse = function(nurseId) {
-  window.selectedNurseId = nurseId;
-  document.querySelectorAll('.nurse-btn').forEach(b => b.style.borderColor = '');
-  document.querySelector(`[data-nurse="${nurseId}"]`).style.borderColor = '#0F6E56';
-  document.getElementById('pin-section').style.display = 'block';
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-error').style.display = 'none';
+function selNurse(id) {
+  ST.selNurse=id;
+  document.querySelectorAll('.nurse-btn').forEach(function(b){b.style.borderColor='';});
+  var s=document.querySelector('[data-nurse="'+id+'"]'); if(s) s.style.borderColor='#0F6E56';
+  document.getElementById('pin-section').style.display='block';
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-error').style.display='none';
   document.getElementById('pin-input').focus();
-};
+}
 
-window.validatePin = function() {
-  const nurse = NURSES.find(n => n.id === window.selectedNurseId);
-  const pin = document.getElementById('pin-input').value;
-  if (nurse && pin === nurse.pin) {
-    window.currentNurse = nurse;
-    localStorage.setItem('loggedNurse', nurse.id);
+function validatePin() {
+  var n=window.NURSES.find(function(x){return x.id===ST.selNurse;});
+  var pin=document.getElementById('pin-input').value;
+  if(n&&pin===n.pin){
+    ST.nurse=n; localStorage.setItem('loggedNurse',n.id);
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').style.display = 'flex';
-    setTimeout(() => document.getElementById('login-screen').remove(), 400);
+    document.getElementById('app').style.display='flex';
+    setTimeout(function(){ var ls=document.getElementById('login-screen'); if(ls) ls.remove(); },400);
     initApp();
   } else {
-    document.getElementById('pin-error').style.display = 'block';
-    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-error').style.display='block';
+    document.getElementById('pin-input').value='';
   }
-};
+}
 
-window.logout = function() {
+document.getElementById('btn-login').addEventListener('click', validatePin);
+document.getElementById('pin-input').addEventListener('keydown', function(e){ if(e.key==='Enter') validatePin(); });
+document.getElementById('btn-logout').addEventListener('click', function(){
   localStorage.removeItem('loggedNurse');
-  Object.values(window.timerIntervals).forEach(clearInterval);
+  Object.values(ST.timerI).forEach(clearInterval);
+  Object.values(ST.travelI).forEach(clearInterval);
   location.reload();
-};
-
-// Allow Enter key on PIN
-document.getElementById('pin-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') validatePin();
 });
 
-// ── Init ──
 function initApp() {
-  const n = window.currentNurse;
-  document.getElementById('topbar-name').textContent = n.name;
-  const av = document.getElementById('topbar-avatar');
-  av.textContent = n.name[0];
-  av.style.background = n.colors.bg;
-  av.style.color = n.colors.color;
-  goToday();
-  listenData();
-  listenTravel();
-  syncNursesConfig();
+  var n=ST.nurse;
+  document.getElementById('topbar-name').textContent=n.name;
+  var av=document.getElementById('topbar-avatar'); av.textContent=n.name[0]; av.style.background=n.colors.bg; av.style.color=n.colors.color;
+  goToday(); listen();
 }
 
-// ── Helpers ──
-function initials(name) { return (name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2); }
-function fmt(s) { const m=Math.floor(s/60),sec=s%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
-function dateKey(d) { return d.toISOString().slice(0,10); }
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-window.showToast = showToast;
-
-// ── Navigation ──
-window.switchTab = function(tab) {
-  window.currentTab = tab;
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('panel-'+tab).classList.add('active');
   document.getElementById('nav-'+tab).classList.add('active');
-  document.getElementById('fab').style.display = tab === 'planning' ? 'flex' : 'none';
-  if (tab === 'stats') renderStats();
-  if (tab === 'patients') renderPatients();
-};
+  document.getElementById('fab').style.display=tab==='planning'?'flex':'none';
+  if(tab==='stats') renderS();
+  if(tab==='patients') renderPat();
+}
 
-window.changeDay = function(n) { currentDate.setDate(currentDate.getDate()+n); renderPlanning(); };
-window.goToday = function() { window.currentDate = new Date(); renderPlanning(); };
+document.getElementById('nav-planning').addEventListener('click', function(){switchTab('planning');});
+document.getElementById('nav-patients').addEventListener('click', function(){switchTab('patients');});
+document.getElementById('nav-stats').addEventListener('click', function(){switchTab('stats');});
+document.getElementById('btn-prev').addEventListener('click', function(){ST.date.setDate(ST.date.getDate()-1); renderP();});
+document.getElementById('btn-next').addEventListener('click', function(){ST.date.setDate(ST.date.getDate()+1); renderP();});
+document.getElementById('btn-today').addEventListener('click', goToday);
+document.getElementById('fab').addEventListener('click', openVisitModal);
+document.getElementById('btn-add-patient').addEventListener('click', function(){openPatientModal(null);});
+document.getElementById('btn-parcours').addEventListener('click', openParcours);
 
-// ── Render Planning ──
-window.renderPlanning = function() {
-  const key = dateKey(window.currentDate);
-  const opts = { weekday:'long', day:'numeric', month:'long' };
-  document.getElementById('date-label').textContent = window.currentDate.toLocaleDateString('fr-FR', opts);
-  const dayVisits = Object.entries(window.visits)
-    .filter(([,v]) => v.date === key)
-    .sort(([,a],[,b]) => a.time.localeCompare(b.time));
-  document.getElementById('visit-count-label').textContent =
-    dayVisits.length + ' visite' + (dayVisits.length !== 1 ? 's' : '') + ' prévues';
-  const el = document.getElementById('visits-container');
-  if (!dayVisits.length) {
-    el.innerHTML = `<div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
-      Aucune visite ce jour.<br>Appuyez sur <strong>+</strong> pour en ajouter une.
-    </div>`;
+function goToday(){ ST.date=new Date(); renderP(); }
+
+function renderP() {
+  var key=dk(ST.date);
+  document.getElementById('date-label').textContent=ST.date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  var dv=Object.entries(ST.visits).filter(function(e){return e[1].date===key;}).sort(function(a,b){return a[1].time.localeCompare(b[1].time);});
+  document.getElementById('visit-count-label').textContent=dv.length+' visite'+(dv.length!==1?'s':'')+' prevues';
+  var hasA=dv.some(function(e){return e[1].patientAddress;});
+  document.getElementById('btn-parcours').style.display=hasA?'flex':'none';
+  document.getElementById('drag-hint').style.display=dv.length>1?'block':'none';
+  var el=document.getElementById('visits-container');
+  if(!dv.length){ el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>Aucune visite ce jour.<br>Appuyez sur + pour en ajouter une.</div>'; return; }
+  el.innerHTML='';
+  dv.forEach(function(entry, i){
+    var id=entry[0], v=entry[1];
+    var pname=v.patientName||'?';
+    var nurse=window.NURSES.find(function(n){return n.id===v.nurseId;})||window.NURSES[0];
+    var t=ST.timers[id]; var running=t&&t.running; var done=t&&t.done; var elapsed=t?(t.elapsed||0):0;
+    var prevAddr=i===0?home():(dv[i-1][1].patientAddress||'');
+    var toAddr=v.patientAddress||'';
+    if(prevAddr&&toAddr){
+      var tk=id; var tt=ST.travel[tk]; var trun=tt&&tt.running; var tdone=tt&&tt.done; var tel=tt?(tt.elapsed||0):0;
+      var est=ST.travelEst[tk];
+      var tbar=document.createElement('div'); tbar.className='travel-bar'; tbar.id='tb-'+tk;
+      var tlbl=document.createElement('span'); tlbl.className='travel-label';
+      tlbl.textContent=(i===0?'Depuis domicile':'Trajet')+(est?' (approx. '+est+' min)':'');
+      tbar.appendChild(tlbl);
+      if(tdone){
+        var tp=document.createElement('span'); tp.className='travel-time'; tp.textContent='OK '+fmt(tel); tbar.appendChild(tp);
+      } else if(trun){
+        var tv=document.createElement('span'); tv.className='travel-time'; tv.id='tt-'+tk; tv.textContent=fmt(tel); tbar.appendChild(tv);
+        var bs=document.createElement('button'); bs.className='btn-travel'; bs.textContent='Arrive';
+        (function(k){bs.addEventListener('click',function(){stopTravel(k);});})(tk);
+        tbar.appendChild(bs);
+      } else {
+        var br=document.createElement('button'); br.className='btn-travel'; br.textContent='En route';
+        (function(k,fa,ta){br.addEventListener('click',function(){startTravel(k,fa,ta);});})(tk,prevAddr,toAddr);
+        tbar.appendChild(br);
+        var bc=document.createElement('button'); bc.className='btn-travel-outline'; bc.textContent='Carte';
+        (function(fa,ta,pn){bc.addEventListener('click',function(){showRouteMap(fa,ta,pn);});})(prevAddr,toAddr,pname);
+        tbar.appendChild(bc);
+      }
+      el.appendChild(tbar);
+    }
+    var card=document.createElement('div');
+    card.className='visit-card'+(running?' running':done?' done':'');
+    card.id='vc-'+id; card.draggable=true;
+    var tagsHtml='<span class="tag tag-care">'+v.care+'</span><span class="tag tag-nurse">'+nurse.name+'</span>';
+    if(done) tagsHtml+='<span class="tag tag-done">OK '+fmt(elapsed)+'</span>';
+    if(v.note) tagsHtml+='<span class="tag" style="background:var(--gray-light);color:var(--gray)">'+v.note.slice(0,20)+(v.note.length>20?'...':'')+'</span>';
+    card.innerHTML='<div class="visit-time-col"><span class="hour">'+v.time+'</span></div>'+
+      '<div class="visit-avatar" style="background:'+nurse.colors.bg+';color:'+nurse.colors.color+'">'+ini(pname)+'</div>'+
+      '<div class="visit-body"><div class="visit-name">'+pname+'</div><div class="visit-address">'+(v.patientAddress||'')+'</div><div class="visit-tags">'+tagsHtml+'</div></div>'+
+      '<div class="visit-actions"></div>';
+    var ac=card.querySelector('.visit-actions');
+    if(running){
+      var tv2=document.createElement('div'); tv2.className='timer-val'; tv2.id='tv-'+id; tv2.textContent=fmt(elapsed); ac.appendChild(tv2);
+      var bst=document.createElement('button'); bst.className='btn-icon btn-stop'; bst.textContent='X';
+      (function(vid){bst.addEventListener('click',function(){stopTimer(vid);});})(id);
+      ac.appendChild(bst);
+    } else if(done){
+      var dp=document.createElement('div'); dp.className='duration-pill'; dp.textContent=fmt(elapsed); ac.appendChild(dp);
+    } else {
+      var bgo=document.createElement('button'); bgo.className='btn-icon btn-start'; bgo.textContent='>';
+      (function(vid){bgo.addEventListener('click',function(){startTimer(vid);});})(id);
+      ac.appendChild(bgo);
+    }
+    if(toAddr){
+      var bm=document.createElement('button'); bm.className='btn-icon btn-map'; bm.textContent='M';
+      (function(vid){bm.addEventListener('click',function(){openMaps(vid);});})(id);
+      ac.appendChild(bm);
+    }
+    var be=document.createElement('button'); be.className='btn-icon'; be.style.background='var(--gray-light)'; be.style.color='var(--gray)'; be.textContent='E';
+    (function(vid){be.addEventListener('click',function(){editVisit(vid);});})(id);
+    ac.appendChild(be);
+    el.appendChild(card);
+  });
+  initDrag();
+}
+
+function startTimer(vid){
+  if(ST.timers[vid]&&ST.timers[vid].running) return;
+  var t={running:true,elapsed:0,startMs:Date.now(),done:false};
+  ST.timers[vid]=t;
+  set(ref(db,'timers/'+vid),{running:true,elapsed:0,done:false});
+  ST.timerI[vid]=setInterval(function(){
+    ST.timers[vid].elapsed=Math.floor((Date.now()-t.startMs)/1000);
+    var e=document.getElementById('tv-'+vid); if(e) e.textContent=fmt(ST.timers[vid].elapsed);
+  },1000);
+  renderP(); toast('Visite demarree');
+}
+
+function stopTimer(vid){
+  if(!ST.timers[vid]) return;
+  clearInterval(ST.timerI[vid]);
+  var el=ST.timers[vid].elapsed;
+  ST.timers[vid]={running:false,elapsed:el,done:true};
+  set(ref(db,'timers/'+vid),{running:false,elapsed:el,done:true});
+  var v=ST.visits[vid];
+  if(v) ST.done.unshift({name:v.patientName||'?',care:v.care,elapsed:el,time:v.time,nurseId:ST.nurse.id});
+  renderP(); toast('Visite terminee - '+fmt(el));
+}
+
+function startTravel(key,fa,ta){
+  if(ST.travel[key]&&ST.travel[key].running) return;
+  var t={running:true,elapsed:0,startMs:Date.now(),done:false};
+  ST.travel[key]=t;
+  ST.travelI[key]=setInterval(function(){
+    ST.travel[key].elapsed=Math.floor((Date.now()-t.startMs)/1000);
+    var e=document.getElementById('tt-'+key); if(e) e.textContent=fmt(ST.travel[key].elapsed);
+  },1000);
+  if(window.gmapsLoaded&&typeof google!=='undefined'){
+    new google.maps.DirectionsService().route({origin:fa,destination:ta,travelMode:'DRIVING'},function(r,s){
+      if(s==='OK'){ ST.travelEst[key]=Math.round(r.routes[0].legs[0].duration.value/60); renderP(); }
+    });
+  }
+  renderP(); toast('Trajet demarre');
+  window.open('https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(fa)+'&destination='+encodeURIComponent(ta)+'&travelmode=driving','_blank');
+}
+
+function stopTravel(key){
+  if(!ST.travel[key]) return;
+  clearInterval(ST.travelI[key]);
+  var el=ST.travel[key].elapsed;
+  ST.travel[key]={running:false,elapsed:el,done:true};
+  set(ref(db,'travel/'+key),{elapsed:el,done:true});
+  renderP(); toast('Trajet termine - '+fmt(el));
+}
+
+function openMaps(vid){
+  var v=ST.visits[vid];
+  if(!v||!v.patientAddress){toast('Ajoutez une adresse dans cette visite');return;}
+  window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(v.patientAddress)+'&travelmode=driving','_blank');
+}
+
+function showRouteMap(fa,ta,pname){
+  ST.mapFrom=fa; ST.mapTo=ta;
+  document.getElementById('map-modal-title').textContent='Trajet vers '+pname;
+  document.getElementById('map-info').textContent=fa+' vers '+ta;
+  document.getElementById('modal-map').classList.add('open');
+  setTimeout(function(){initRouteMap(fa,ta);},200);
+}
+
+function initRouteMap(from,to){
+  var d=document.getElementById('map-container');
+  if(!window.gmapsLoaded||typeof google==='undefined'){
+    d.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;text-align:center;color:var(--text-muted)">Carte en cours de chargement. Utilisez le bouton Google Maps.</div>';
     return;
   }
-  // Show parcours button if there are visits with addresses
-  const hasAddresses = dayVisits.some(([,v]) => v.patientAddress);
-  const parcoursBtn = document.getElementById('btn-parcours');
-  const dragHint = document.getElementById('drag-hint');
-  if (parcoursBtn) parcoursBtn.style.display = hasAddresses ? 'flex' : 'none';
-  if (dragHint) dragHint.style.display = dayVisits.length > 1 ? 'block' : 'none';
-  el.innerHTML = dayVisits.map(([id, v], i) => {
-    const patientName = v.patientName || '?';
-    const nurse = NURSES.find(n => n.id === v.nurseId) || NURSES[0];
-    const t = window.timers[id];
-    const running = t && t.running;
-    const done = t && t.done;
-    const elapsed = t ? t.elapsed || 0 : 0;
-    const prevVisit = i > 0 ? dayVisits[i-1] : null;
-    const fromAddr = prevVisit ? prevVisit[1].patientAddress : (window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '');
-    const toAddr = v.patientAddress || '';
-    const travelKey = id;
-    const tt = window.travelTimers[travelKey];
-    const ttRunning = tt && tt.running;
-    const ttDone = tt && tt.done;
-    const ttElapsed = tt ? tt.elapsed || 0 : 0;
-    const estMin = window.travelEstimates[travelKey];
-    const travelBar = (fromAddr && toAddr) ? `
-      <div class="travel-bar" id="tb-${travelKey}">
-        <span class="travel-label">🚗 Trajet${estMin ? ' (≈'+estMin+' min estimé)' : ''}</span>
-        ${ttDone
-          ? `<span class="travel-time">✓ ${fmtT(ttElapsed)}</span>`
-          : ttRunning
-            ? `<span class="travel-time" id="tt-${travelKey}">${fmtT(ttElapsed)}</span>
-               <button class="btn-travel" onclick="stopTravel('${travelKey}')">Arrivé</button>`
-            : `<button class="btn-travel" onclick="startTravel('${travelKey}','${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}')">En route</button>
-               <button class="btn-map-route" onclick="showRouteMap('${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}','${encodeURIComponent(v.patientName||&quot;Patient&quot;)}')" title="Voir le tracé">🗺</button>`
-        }
-      </div>` : '';
-    return travelBar + `<div class="visit-card ${running?'running':done?'done':''}" id="vc-${id}">
-      <div class="visit-time-col"><span class="hour">${v.time}</span></div>
-      <div class="visit-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color}">${initials(patientName)}</div>
-      <div class="visit-body">
-        <div class="visit-name">${patientName}</div>
-        <div class="visit-address">${v.patientAddress || ''}</div>
-        <div class="visit-tags">
-          <span class="tag tag-care">${v.care}</span>
-          <span class="tag tag-nurse">${nurse.name}</span>
-          ${done?`<span class="tag tag-done">✓ ${fmt(elapsed)}</span>`:''}
-          ${v.note?`<span class="tag" style="background:var(--gray-light);color:var(--gray)">${v.note.slice(0,20)}${v.note.length>20?'…':''}</span>`:''}
-        </div>
-      </div>
-      <div class="visit-actions">
-        ${running
-          ? `<div class="timer-val" id="tv-${id}">${fmt(elapsed)}</div>
-             <button class="btn-icon btn-stop" onclick="stopTimer('${id}')" title="Terminer">⏹</button>`
-          : done
-            ? `<div class="duration-pill">${fmt(elapsed)}</div>`
-            : `<button class="btn-icon btn-start" onclick="startTimer('${id}')" title="Commencer">▶</button>`
-        }
-        <button class="btn-icon btn-map" onclick="openMaps('${id}')" title="Naviguer">🗺</button>
-        <button class="btn-icon" style="background:var(--gray-light);color:var(--gray)" onclick="editVisit('${id}')" title="Modifier">✎</button>
-      </div>
-    </div>`;
-  }).join('');
-  // Init drag and drop after DOM update
-  setTimeout(window.initDragDrop, 50);
-};
+  var map=new google.maps.Map(d,{zoom:12,center:{lat:43.3,lng:-0.37},mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
+  var dr=new google.maps.DirectionsRenderer({map:map,polylineOptions:{strokeColor:'#0F6E56',strokeWeight:5}});
+  new google.maps.DirectionsService().route({origin:from,destination:to,travelMode:'DRIVING'},function(r,s){
+    if(s==='OK'){
+      dr.setDirections(r);
+      var leg=r.routes[0].legs[0];
+      document.getElementById('map-info').textContent=leg.duration.text+' - '+leg.distance.text;
+    } else {
+      d.innerHTML='<div style="padding:2rem;text-align:center;color:var(--text-muted)">Impossible de calculer le trajet. Verifiez les adresses.</div>';
+    }
+  });
+}
 
-// ── Timer ──
-window.startTimer = function(vid) {
-  if (window.timers[vid] && window.timers[vid].running) return;
-  const t = { running: true, elapsed: 0, startMs: Date.now(), done: false, nurseId: window.currentNurse.id };
-  window.timers[vid] = t;
-  dbSet(ref(db, 'timers/'+vid), { running:true, elapsed:0, done:false, nurseId:t.nurseId });
-  window.timerIntervals[vid] = setInterval(() => {
-    window.timers[vid].elapsed = Math.floor((Date.now() - t.startMs) / 1000);
-    const el = document.getElementById('tv-'+vid);
-    if (el) el.textContent = fmt(window.timers[vid].elapsed);
-  }, 1000);
-  renderPlanning();
-  showToast('Visite démarrée ▶');
-};
+document.getElementById('btn-close-map').addEventListener('click',function(){document.getElementById('modal-map').classList.remove('open');});
+document.getElementById('btn-open-gmaps').addEventListener('click',function(){
+  window.open('https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(ST.mapFrom)+'&destination='+encodeURIComponent(ST.mapTo)+'&travelmode=driving','_blank');
+});
 
-window.stopTimer = function(vid) {
-  if (!window.timers[vid]) return;
-  clearInterval(window.timerIntervals[vid]);
-  const elapsed = window.timers[vid].elapsed;
-  window.timers[vid] = { running: false, elapsed, done: true };
-  dbSet(ref(db, 'timers/'+vid), { running:false, elapsed, done:true });
-  // Add to completed
-  const v = window.visits[vid];
-  if (v) {
-    window.completedToday.unshift({ name: v.patientName || '?', care:v.care, elapsed, time:v.time, nurseId:window.currentNurse.id });
-  }
-  renderPlanning();
-  showToast(`Visite terminée — ${fmt(elapsed)}`);
-};
+function openParcours(){
+  var key=dk(ST.date), h=home();
+  if(!h){toast('Ajoutez votre adresse domicile dans les parametres');return;}
+  var addrs=Object.entries(ST.visits).filter(function(e){return e[1].date===key&&e[1].patientAddress;}).sort(function(a,b){return a[1].time.localeCompare(b[1].time);}).map(function(e){return e[1].patientAddress;});
+  if(!addrs.length){toast('Aucune adresse renseignee pour les visites du jour');return;}
+  var dest=encodeURIComponent(addrs[addrs.length-1]);
+  var wp=addrs.slice(0,-1).map(function(a){return encodeURIComponent(a);}).join('|');
+  var url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(h)+'&destination='+dest+(wp?'&waypoints='+wp:'')+'&travelmode=driving';
+  window.open(url,'_blank');
+  toast('Parcours lance - '+addrs.length+' arret'+(addrs.length>1?'s':''));
+}
 
-// ── Maps ──
-window.openMaps = function(vid) {
-  const v = window.visits[vid];
-  if (!v) return;
-  const query = v.patientAddress || '';
-  if (!query) { showToast('Ajoutez une adresse dans cette visite (bouton ✎)'); return; }
-  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-  if (isMobile) {
-    const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
-    window.location.href = url;
-  } else {
-    const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
-    window.open(url, '_blank');
-  }
-};
+function initDrag(){
+  var c=document.getElementById('visits-container'), src=null;
+  c.querySelectorAll('.visit-card').forEach(function(card){
+    card.addEventListener('dragstart',function(){src=this;this.classList.add('dragging');});
+    card.addEventListener('dragend',function(){this.classList.remove('dragging');c.querySelectorAll('.visit-card').forEach(function(x){x.classList.remove('drag-over');});});
+    card.addEventListener('dragover',function(e){e.preventDefault();c.querySelectorAll('.visit-card').forEach(function(x){x.classList.remove('drag-over');});if(this!==src)this.classList.add('drag-over');});
+    card.addEventListener('drop',function(e){e.stopPropagation();if(src&&src!==this){var cc=Array.from(c.querySelectorAll('.visit-card'));if(cc.indexOf(src)<cc.indexOf(this))this.after(src);else this.before(src);}});
+  });
+}
 
-window.openMapsFromPatient = function(pid) {
-  const p = window.patients[pid];
-  if (!p) { showToast('Patient introuvable'); return; }
-  const query = p.adresse || '';
-  if (!query) { showToast('Ajoutez une adresse dans la fiche patient'); return; }
-  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-  if (isMobile) {
-    window.location.href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query);
-  } else {
-    window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(query), '_blank');
-  }
-};
+document.getElementById('v-patient-name').addEventListener('input',function(){searchPat(this.value);});
+document.getElementById('v-patient-name').addEventListener('focus',function(){searchPat(this.value);});
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('patient-dropdown'),inp=document.getElementById('v-patient-name');
+  if(dd&&inp&&!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+});
 
-// ── Visit Modal ──
-window.openVisitModal = function() {
-  window.editingVisitId = null;
-  document.getElementById('modal-visit-title').textContent = 'Nouvelle visite';
-  document.getElementById('btn-delete-visit').style.display = 'none';
-  // Clear patient fields
-  document.getElementById('v-patient-name').value = '';
-  document.getElementById('v-patient-address').value = '';
-  document.getElementById('patient-dropdown').style.display = 'none';
-  // Populate nurses
-  const ns = document.getElementById('v-nurse');
-  ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===window.currentNurse.id?'selected':''}>${n.name}</option>`).join('');
-  // Default time = now rounded to 15min
-  const now = new Date();
-  const m = Math.ceil(now.getMinutes()/15)*15;
-  const h = now.getHours() + Math.floor(m/60);
-  document.getElementById('v-time').value = `${String(h%24).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-  document.getElementById('v-note').value = '';
+function searchPat(q){
+  var dd=document.getElementById('patient-dropdown');
+  var list=Object.entries(ST.patients).filter(function(e){return (e[1].prenom+' '+e[1].nom).toLowerCase().includes(q.toLowerCase());}).slice(0,8);
+  if(!list.length){dd.style.display=q.length>0?'block':'none';dd.innerHTML=q.length>0?'<div style="padding:10px 14px;font-size:13px;color:var(--text-muted)">Aucun patient - saisie libre</div>':'';return;}
+  dd.style.display='block'; dd.innerHTML='';
+  list.forEach(function(entry,idx){
+    var pid=entry[0],p=entry[1];
+    var nc=window.NURSES[idx%window.NURSES.length].colors;
+    var item=document.createElement('div'); item.className='pdd-item';
+    item.innerHTML='<div style="width:32px;height:32px;border-radius:50%;background:'+nc.bg+';color:'+nc.color+';display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0">'+(p.prenom[0]||'')+(p.nom[0]||'')+'</div><div><div style="font-size:13px;font-weight:500">'+p.prenom+' '+p.nom+'</div><div style="font-size:11px;color:var(--text-muted)">'+(p.adresse||'Adresse non renseignee')+'</div></div>';
+    (function(pat){item.addEventListener('click',function(){document.getElementById('v-patient-name').value=pat.prenom+' '+pat.nom;document.getElementById('v-patient-address').value=pat.adresse||'';document.getElementById('patient-dropdown').style.display='none';});})(p);
+    dd.appendChild(item);
+  });
+}
+
+function openVisitModal(){
+  ST.editV=null;
+  document.getElementById('modal-visit-title').textContent='Nouvelle visite';
+  document.getElementById('btn-delete-visit').style.display='none';
+  document.getElementById('v-patient-name').value='';
+  document.getElementById('v-patient-address').value='';
+  document.getElementById('patient-dropdown').style.display='none';
+  var ns=document.getElementById('v-nurse');
+  ns.innerHTML=window.NURSES.map(function(n){return '<option value="'+n.id+'"'+(ST.nurse&&n.id===ST.nurse.id?' selected':'')+'>'+n.name+'</option>';}).join('');
+  var now=new Date(), m=Math.ceil(now.getMinutes()/15)*15, h=now.getHours()+Math.floor(m/60);
+  document.getElementById('v-time').value=pad(h%24)+':'+pad(m%60);
+  document.getElementById('v-duration').value='00:30';
+  document.getElementById('v-note').value='';
   document.getElementById('modal-visit').classList.add('open');
-};
+}
 
-window.editVisit = function(vid) {
-  const v = window.visits[vid];
-  if (!v) return;
-  window.editingVisitId = vid;
-  document.getElementById('modal-visit-title').textContent = 'Modifier la visite';
-  document.getElementById('btn-delete-visit').style.display = 'block';
-  document.getElementById('v-patient-name').value = v.patientName || '';
-  document.getElementById('v-patient-address').value = v.patientAddress || '';
-  const ns = document.getElementById('v-nurse');
-  ns.innerHTML = NURSES.map(n=>`<option value="${n.id}" ${n.id===v.nurseId?'selected':''}>${n.name}</option>`).join('');
-  document.getElementById('v-time').value = v.time;
-  const dh = String(Math.floor((v.duration||30)/60)).padStart(2,'0');
-  const dm = String((v.duration||30)%60).padStart(2,'0');
-  document.getElementById('v-duration').value = dh+':'+dm;
-  document.getElementById('v-care').value = v.care;
-  document.getElementById('v-note').value = v.note || '';
+function editVisit(vid){
+  var v=ST.visits[vid]; if(!v) return;
+  ST.editV=vid;
+  document.getElementById('modal-visit-title').textContent='Modifier la visite';
+  document.getElementById('btn-delete-visit').style.display='block';
+  document.getElementById('v-patient-name').value=v.patientName||'';
+  document.getElementById('v-patient-address').value=v.patientAddress||'';
+  var ns=document.getElementById('v-nurse');
+  ns.innerHTML=window.NURSES.map(function(n){return '<option value="'+n.id+'"'+(n.id===v.nurseId?' selected':'')+'>'+n.name+'</option>';}).join('');
+  document.getElementById('v-time').value=v.time;
+  var dh=Math.floor((v.duration||30)/60), dm=(v.duration||30)%60;
+  document.getElementById('v-duration').value=pad(dh)+':'+pad(dm);
+  document.getElementById('v-care').value=v.care;
+  document.getElementById('v-note').value=v.note||'';
   document.getElementById('modal-visit').classList.add('open');
-};
+}
 
-window.closeVisitModal = function() { document.getElementById('modal-visit').classList.remove('open'); };
+document.getElementById('btn-cancel-visit').addEventListener('click',function(){document.getElementById('modal-visit').classList.remove('open');});
+document.getElementById('btn-save-visit').addEventListener('click',function(){
+  var pname=document.getElementById('v-patient-name').value.trim();
+  var time=document.getElementById('v-time').value;
+  if(!pname||!time){toast('Indiquez le nom du patient');return;}
+  var dur=document.getElementById('v-duration').value.split(':');
+  var data={patientName:pname,patientAddress:document.getElementById('v-patient-address').value.trim(),time:time,duration:parseInt(dur[0])*60+parseInt(dur[1]),care:document.getElementById('v-care').value,nurseId:document.getElementById('v-nurse').value,note:document.getElementById('v-note').value.trim(),date:dk(ST.date),createdBy:ST.nurse?ST.nurse.id:''};
+  if(ST.editV){set(ref(db,'visits/'+ST.editV),data);toast('Visite modifiee');}
+  else{push(ref(db,'visits'),data);toast('Visite ajoutee');}
+  document.getElementById('modal-visit').classList.remove('open');
+});
+document.getElementById('btn-delete-visit').addEventListener('click',function(){
+  if(!ST.editV) return;
+  if(!confirm('Supprimer cette visite ?')) return;
+  remove(ref(db,'visits/'+ST.editV)); remove(ref(db,'timers/'+ST.editV));
+  document.getElementById('modal-visit').classList.remove('open'); toast('Visite supprimee');
+});
 
-window.saveVisit = function() {
-  const patientName = document.getElementById('v-patient-name').value.trim();
-  const time = document.getElementById('v-time').value;
-  if (!patientName || !time) { showToast('Indiquez le nom du patient'); return; }
-  const patientAddress = document.getElementById('v-patient-address').value.trim();
-  const data = {
-    patientName, patientAddress, time,
-    duration: (function(){ const t = document.getElementById('v-duration').value; const parts = t.split(':'); return parseInt(parts[0])*60 + parseInt(parts[1]); })(),
-    care: document.getElementById('v-care').value,
-    nurseId: document.getElementById('v-nurse').value,
-    note: document.getElementById('v-note').value.trim(),
-    date: dateKey(window.currentDate),
-    createdBy: window.currentNurse.id
-  };
-  if (window.editingVisitId) {
-    dbSet(ref(db, 'visits/'+window.editingVisitId), data);
-    showToast('Visite modifiée ✓');
+function openPatientModal(pid){
+  ST.editP=pid||null;
+  if(pid){
+    var p=ST.patients[pid];
+    document.getElementById('modal-patient-title').textContent='Modifier le patient';
+    document.getElementById('btn-delete-patient').style.display='block';
+    document.getElementById('p-prenom').value=p.prenom||'';
+    document.getElementById('p-nom').value=p.nom||'';
+    document.getElementById('p-adresse').value=p.adresse||'';
+    document.getElementById('p-tel').value=p.tel||'';
+    document.getElementById('p-ddn').value=p.ddn||'';
+    document.getElementById('p-medecin').value=p.medecin||'';
+    document.getElementById('p-patho').value=p.patho||'';
+    document.getElementById('p-notes').value=p.notes||'';
   } else {
-    dbPush(ref(db, 'visits'), data);
-    showToast('Visite ajoutée ✓');
-  }
-  closeVisitModal();
-};
-
-window.deleteVisit = function() {
-  if (!window.editingVisitId) return;
-  if (!confirm('Supprimer cette visite ?')) return;
-  dbRemove(ref(db, 'visits/'+window.editingVisitId));
-  dbRemove(ref(db, 'timers/'+window.editingVisitId));
-  closeVisitModal();
-  showToast('Visite supprimée');
-};
-
-// ── Patient Modal ──
-window.openPatientModal = function(pid) {
-  window.editingPatientId = pid || null;
-  if (pid) {
-    const p = window.patients[pid];
-    document.getElementById('modal-patient-title').textContent = 'Modifier le patient';
-    document.getElementById('btn-delete-patient').style.display = 'block';
-    document.getElementById('p-prenom').value = p.prenom || '';
-    document.getElementById('p-nom').value = p.nom || '';
-    document.getElementById('p-adresse').value = p.adresse || '';
-    document.getElementById('p-tel').value = p.tel || '';
-    document.getElementById('p-ddn').value = p.ddn || '';
-
-    document.getElementById('p-medecin').value = p.medecin || '';
-    document.getElementById('p-patho').value = p.patho || '';
-    document.getElementById('p-notes').value = p.notes || '';
-  } else {
-    document.getElementById('modal-patient-title').textContent = 'Nouveau patient';
-    document.getElementById('btn-delete-patient').style.display = 'none';
-    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-medecin','p-patho','p-notes']
-      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('modal-patient-title').textContent='Nouveau patient';
+    document.getElementById('btn-delete-patient').style.display='none';
+    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-medecin','p-patho','p-notes'].forEach(function(id){document.getElementById(id).value='';});
   }
   document.getElementById('modal-patient').classList.add('open');
-};
-
-window.closePatientModal = function() { document.getElementById('modal-patient').classList.remove('open'); };
-
-window.savePatient = function() {
-  const prenom = document.getElementById('p-prenom').value.trim();
-  const nom = document.getElementById('p-nom').value.trim();
-  if (!prenom || !nom) { showToast('Prénom et nom requis'); return; }
-  const data = {
-    prenom, nom,
-    adresse: document.getElementById('p-adresse').value.trim(),
-    tel: document.getElementById('p-tel').value.trim(),
-    ddn: document.getElementById('p-ddn').value,
-
-    medecin: document.getElementById('p-medecin').value.trim(),
-    patho: document.getElementById('p-patho').value.trim(),
-    notes: document.getElementById('p-notes').value.trim()
-  };
-  if (window.editingPatientId) {
-    dbSet(ref(db, 'patients/'+window.editingPatientId), data);
-    showToast('Patient modifié ✓');
-  } else {
-    dbPush(ref(db, 'patients'), data);
-    showToast('Patient ajouté ✓');
-  }
-  closePatientModal();
-};
-
-window.deletePatient = function() {
-  if (!window.editingPatientId) return;
-  if (!confirm('Supprimer ce patient ? Ses visites ne seront pas supprimées.')) return;
-  dbRemove(ref(db, 'patients/'+window.editingPatientId));
-  closePatientModal();
-  showToast('Patient supprimé');
-};
-
-// ── Patients List ──
-window.renderPatients = function() {
-  const q = (document.getElementById('patient-search') || {}).value || '';
-  filterPatients(q);
-};
-
-window.filterPatients = function(q) {
-  const list = Object.entries(window.patients)
-    .filter(([,p]) => (p.prenom+' '+p.nom+p.adresse).toLowerCase().includes(q.toLowerCase()))
-    .sort(([,a],[,b]) => a.nom.localeCompare(b.nom));
-  document.getElementById('patients-count-label').textContent = list.length + ' patient' + (list.length!==1?'s':'');
-  const el = document.getElementById('patients-container');
-  if (!list.length) {
-    el.innerHTML = `<div class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      Aucun patient trouvé.
-    </div>`;
-    return;
-  }
-  el.innerHTML = list.map(([id,p]) => {
-    const age = p.ddn ? Math.floor((Date.now()-new Date(p.ddn))/(365.25*24*3600*1000)) : null;
-    const nurse = NURSES[Object.keys(window.patients).indexOf(id) % NURSES.length];
-    return `<div class="patient-card">
-      <div class="patient-header">
-        <div class="patient-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color}">${initials(p.prenom+' '+p.nom)}</div>
-        <div>
-          <div class="patient-name">${p.prenom} ${p.nom}</div>
-          <div class="patient-sub">${age?age+' ans · ':''}${p.medecin||'Médecin non renseigné'}</div>
-        </div>
-      </div>
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Téléphone</span><span class="info-value">${p.tel||'—'}</span></div>
-
-        ${p.patho?`<div class="info-item info-full"><span class="info-label">Pathologie</span><span class="info-value">${p.patho}</span></div>`:''}
-        ${p.notes?`<div class="info-item info-full"><span class="info-label">Allergies / Notes</span><span class="info-value" style="color:var(--red)">${p.notes}</span></div>`:''}
-        <div class="info-item info-full"><span class="info-label">Adresse</span><span class="info-value">${p.adresse||'—'}</span></div>
-      </div>
-      <div class="card-actions">
-        <button class="btn-small" onclick="openMapsFromPatient('${id}')">🗺 Naviguer</button>
-        <button class="btn-small" onclick="callPatient('${id}')">📞 Appeler</button>
-        <button class="btn-small" onclick="openPatientModal('${id}')">✎ Modifier</button>
-      </div>
-    </div>`;
-  }).join('');
-};
-
-window.callPatient = function(pid) {
-  const p = window.patients[pid];
-  if (p && p.tel) window.location.href = 'tel:'+p.tel.replace(/\s/g,'');
-};
-
-// ── Stats ──
-window.renderStats = function() {
-  const key = dateKey(window.currentDate);
-  const dayVisits = Object.entries(window.visits).filter(([,v]) => v.date === key);
-  const done = Object.entries(window.timers).filter(([vid,t]) => t.done && window.visits[vid]?.date===key);
-  const totalSec = done.reduce((a,[,t]) => a + (t.elapsed||0), 0);
-
-  const plannedMin = dayVisits.reduce((a,[,v]) => a + (v.duration||0), 0);
-  const travelSec = Object.entries(window.travelTimers)
-    .filter(([k,t]) => t.done && window.visits[k]?.date===key)
-    .reduce((a,[,t]) => a + (t.elapsed||0), 0);
-  const travelMin = Math.round(travelSec/60);
-  const travelH = Math.floor(travelMin/60);
-  const travelM = travelMin%60;
-  const plannedH = Math.floor(plannedMin/60);
-  const plannedM = plannedMin%60;
-  const realMin = Math.round(totalSec/60);
-  const realH = Math.floor(realMin/60);
-  const realM = realMin%60;
-  const fmtDur = (h,m) => h>0 ? h+'h'+String(m).padStart(2,'0') : m+'min';
-
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Visites prévues</div><div class="stat-value">${dayVisits.length}</div><div class="stat-sub">aujourd'hui</div></div>
-    <div class="stat-card"><div class="stat-label">Effectuées</div><div class="stat-value">${done.length}</div><div class="stat-sub">terminées</div></div>
-    <div class="stat-card"><div class="stat-label">Temps prévu</div><div class="stat-value" style="font-size:22px">${fmtDur(plannedH,plannedM)}</div><div class="stat-sub">total journée</div></div>
-    <div class="stat-card"><div class="stat-label">Temps réel</div><div class="stat-value" style="font-size:22px">${realMin>0?fmtDur(realH,realM):'—'}</div><div class="stat-sub">chronomètres</div></div>
-    <div class="stat-card"><div class="stat-label">Temps route</div><div class="stat-value" style="font-size:22px">${travelMin>0?fmtDur(travelH,travelM):'—'}</div><div class="stat-sub">trajets mesurés</div></div>
-    <div class="stat-card"><div class="stat-label">Temps total</div><div class="stat-value" style="font-size:22px">${(realMin+travelMin)>0?fmtDur(Math.floor((realMin+travelMin)/60),(realMin+travelMin)%60):'—'}</div><div class="stat-sub">soins + route</div></div>
-  `;
-
-  // Per nurse
-  const nurseEl = document.getElementById('nurse-stats');
-  nurseEl.innerHTML = `<div class="nurse-legend">${NURSES.map(n => {
-    const nv = dayVisits.filter(([,v])=>v.nurseId===n.id).length;
-    const nd = done.filter(([vid])=>window.visits[vid]?.nurseId===n.id).length;
-    return `<div class="nurse-badge" style="background:${n.colors.bg};color:${n.colors.color}">
-      ${n.name} — ${nd}/${nv} visite${nv!==1?'s':''}
-    </div>`;
-  }).join('')}</div>`;
-
-  // History
-  const hist = window.completedToday;
-  const histEl = document.getElementById('history-container');
-  if (!hist.length) { histEl.innerHTML='<div class="empty-state" style="padding:1.5rem">Les visites terminées apparaîtront ici.</div>'; return; }
-  histEl.innerHTML = hist.map((v,i) => {
-    const nurse = NURSES.find(n=>n.id===v.nurseId)||NURSES[0];
-    return `<div class="history-item">
-      <div class="visit-avatar" style="background:${nurse.colors.bg};color:${nurse.colors.color};width:34px;height:34px;font-size:12px">${initials(v.name)}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:500">${v.name}</div><div style="font-size:12px;color:var(--text-muted)">${v.care} · ${v.time} · ${nurse.name}</div></div>
-      <span class="duration-pill">${fmt(v.elapsed)}</span>
-    </div>`;
-  }).join('');
-};
-
-// ── Build Login Screen ──
-const nurseButtons = document.getElementById('nurse-buttons');
-NURSES.forEach(n => {
-  const btn = document.createElement('button');
-  btn.className = 'nurse-btn';
-  btn.dataset.nurse = n.id;
-  btn.onclick = () => selectNurse(n.id);
-  btn.innerHTML = `<div class="avatar" style="background:${n.colors.bg};color:${n.colors.color}">${n.name[0]}</div>
-    <div><div class="name">${n.name}</div><div class="role">Infirmière libérale</div></div>`;
-  nurseButtons.appendChild(btn);
+}
+document.getElementById('btn-cancel-patient').addEventListener('click',function(){document.getElementById('modal-patient').classList.remove('open');});
+document.getElementById('btn-save-patient').addEventListener('click',function(){
+  var prenom=document.getElementById('p-prenom').value.trim(), nom=document.getElementById('p-nom').value.trim();
+  if(!prenom||!nom){toast('Prenom et nom requis');return;}
+  var data={prenom:prenom,nom:nom,adresse:document.getElementById('p-adresse').value.trim(),tel:document.getElementById('p-tel').value.trim(),ddn:document.getElementById('p-ddn').value,medecin:document.getElementById('p-medecin').value.trim(),patho:document.getElementById('p-patho').value.trim(),notes:document.getElementById('p-notes').value.trim()};
+  if(ST.editP){set(ref(db,'patients/'+ST.editP),data);toast('Patient modifie');}
+  else{push(ref(db,'patients'),data);toast('Patient ajoute');}
+  document.getElementById('modal-patient').classList.remove('open');
+});
+document.getElementById('btn-delete-patient').addEventListener('click',function(){
+  if(!ST.editP) return;
+  if(!confirm('Supprimer ce patient ?')) return;
+  remove(ref(db,'patients/'+ST.editP));
+  document.getElementById('modal-patient').classList.remove('open'); toast('Patient supprime');
 });
 
-// ── Auto-login from localStorage ──
-const saved = localStorage.getItem('loggedNurse');
-if (saved) {
-  const nurse = NURSES.find(n => n.id === saved);
-  if (nurse) {
-    window.currentNurse = nurse;
-    document.getElementById('login-screen').remove();
-    document.getElementById('app').style.display = 'flex';
-    initApp();
-  }
-}
+document.getElementById('patient-search').addEventListener('input',function(){filterPat(this.value);});
 
-// ── Travel timer ──
-function fmtT(s) { const m=Math.floor(s/60),sec=s%60; return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+function renderPat(){ filterPat(document.getElementById('patient-search').value||''); }
 
-window.startTravel = function(key, fromEnc, toEnc) {
-  const from = decodeURIComponent(fromEnc);
-  const to = decodeURIComponent(toEnc);
-  if (window.travelTimers[key] && window.travelTimers[key].running) return;
-  const t = { running: true, elapsed: 0, startMs: Date.now(), done: false };
-  window.travelTimers[key] = t;
-  window.travelIntervals[key] = setInterval(() => {
-    window.travelTimers[key].elapsed = Math.floor((Date.now() - t.startMs) / 1000);
-    const el = document.getElementById('tt-' + key);
-    if (el) el.textContent = fmtT(window.travelTimers[key].elapsed);
-  }, 1000);
-  // Estimate with Google Maps Directions API
-  if (typeof google !== 'undefined' && google.maps && google.maps.DirectionsService) {
-    const ds = new google.maps.DirectionsService();
-    ds.route({ origin: from, destination: to, travelMode: 'DRIVING' }, (result, status) => {
-      if (status === 'OK') {
-        const mins = Math.round(result.routes[0].legs[0].duration.value / 60);
-        window.travelEstimates[key] = mins;
-        renderPlanning();
-      }
-    });
-  }
-  renderPlanning();
-  showToast('Trajet démarré 🚗');
-  // Open Maps navigation
-  const url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(from) + '&destination=' + encodeURIComponent(to) + '&travelmode=driving';
-  window.open(url, '_blank');
-};
-
-window.stopTravel = function(key) {
-  if (!window.travelTimers[key]) return;
-  clearInterval(window.travelIntervals[key]);
-  const elapsed = window.travelTimers[key].elapsed;
-  window.travelTimers[key] = { running: false, elapsed, done: true };
-  // Save to Firebase
-  dbSet(ref(db, 'travel/'+key), { elapsed, done: true });
-  renderPlanning();
-  showToast('Trajet terminé — ' + fmtT(elapsed));
-};
-
-// Load travel data from Firebase
-function listenTravel() {
-  onValue(ref(db, 'travel'), snap => {
-    const remote = snap.val() || {};
-    Object.entries(remote).forEach(([k, t]) => {
-      if (!window.travelTimers[k] || !window.travelTimers[k].running) {
-        window.travelTimers[k] = t;
-      }
-    });
-    renderPlanning();
+function filterPat(q){
+  var list=Object.entries(ST.patients).filter(function(e){return (e[1].prenom+' '+e[1].nom+(e[1].adresse||'')).toLowerCase().includes(q.toLowerCase());}).sort(function(a,b){return a[1].nom.localeCompare(b[1].nom);});
+  document.getElementById('patients-count-label').textContent=list.length+' patient'+(list.length!==1?'s':'');
+  var el=document.getElementById('patients-container');
+  if(!list.length){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Aucun patient trouve.</div>';return;}
+  el.innerHTML='';
+  list.forEach(function(entry,idx){
+    var id=entry[0],p=entry[1];
+    var age=p.ddn?Math.floor((Date.now()-new Date(p.ddn))/(365.25*24*3600*1000)):null;
+    var nc=window.NURSES[idx%window.NURSES.length].colors;
+    var card=document.createElement('div'); card.className='patient-card';
+    card.innerHTML='<div class="patient-header"><div class="patient-avatar" style="background:'+nc.bg+';color:'+nc.color+'">'+ini(p.prenom+' '+p.nom)+'</div><div><div class="patient-name">'+p.prenom+' '+p.nom+'</div><div class="patient-sub">'+(age?age+' ans - ':'')+(p.medecin||'Medecin non renseigne')+'</div></div></div>'+
+      '<div class="info-grid">'+
+        '<div class="info-item"><span class="info-label">Telephone</span><span class="info-value">'+(p.tel||'-')+'</span></div>'+
+        (p.patho?'<div class="info-item info-full"><span class="info-label">Pathologie</span><span class="info-value">'+p.patho+'</span></div>':'')+
+        (p.notes?'<div class="info-item info-full"><span class="info-label">Allergies / Notes</span><span class="info-value" style="color:var(--red)">'+p.notes+'</span></div>':'')+
+        '<div class="info-item info-full"><span class="info-label">Adresse</span><span class="info-value">'+(p.adresse||'-')+'</span></div>'+
+      '</div>'+
+      '<div class="card-actions"></div>';
+    var ac=card.querySelector('.card-actions');
+    var bN=document.createElement('button'); bN.className='btn-small'; bN.textContent='Naviguer';
+    var bC=document.createElement('button'); bC.className='btn-small'; bC.textContent='Appeler';
+    var bE=document.createElement('button'); bE.className='btn-small'; bE.textContent='Modifier';
+    (function(addr){bN.addEventListener('click',function(){if(!addr){toast('Ajoutez une adresse dans la fiche patient');return;}window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(addr)+'&travelmode=driving','_blank');});})(p.adresse);
+    (function(tel){bC.addEventListener('click',function(){if(tel)window.location.href='tel:'+tel.replace(/\s/g,'');});})(p.tel);
+    (function(pid2){bE.addEventListener('click',function(){openPatientModal(pid2);});})(id);
+    ac.appendChild(bN); ac.appendChild(bC); ac.appendChild(bE);
+    el.appendChild(card);
   });
 }
 
-// ── Map modal ──
-window.currentMapFrom = '';
-window.currentMapTo = '';
-window.mapInstance = null;
+function renderS(){
+  var key=dk(ST.date);
+  var dv=Object.entries(ST.visits).filter(function(e){return e[1].date===key;});
+  var done=Object.entries(ST.timers).filter(function(e){return e[1].done&&ST.visits[e[0]]&&ST.visits[e[0]].date===key;});
+  var totalSec=done.reduce(function(a,e){return a+(e[1].elapsed||0);},0);
+  var travelSec=Object.entries(ST.travel).filter(function(e){return e[1].done&&ST.visits[e[0]]&&ST.visits[e[0]].date===key;}).reduce(function(a,e){return a+(e[1].elapsed||0);},0);
+  var plannedMin=dv.reduce(function(a,e){return a+(e[1].duration||0);},0);
+  var realMin=Math.round(totalSec/60), travMin=Math.round(travelSec/60), totMin=realMin+travMin;
+  document.getElementById('stats-grid').innerHTML=
+    '<div class="stat-card"><div class="stat-label">Visites prevues</div><div class="stat-value">'+dv.length+'</div><div class="stat-sub">aujourd'hui</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Effectuees</div><div class="stat-value">'+done.length+'</div><div class="stat-sub">terminees</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Temps prevu</div><div class="stat-value" style="font-size:20px">'+(plannedMin>0?fmtD(Math.floor(plannedMin/60),plannedMin%60):'-')+'</div><div class="stat-sub">total journee</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Temps soins</div><div class="stat-value" style="font-size:20px">'+(realMin>0?fmtD(Math.floor(realMin/60),realMin%60):'-')+'</div><div class="stat-sub">chronometres</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Temps route</div><div class="stat-value" style="font-size:20px">'+(travMin>0?fmtD(Math.floor(travMin/60),travMin%60):'-')+'</div><div class="stat-sub">trajets mesures</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Temps total</div><div class="stat-value" style="font-size:20px">'+(totMin>0?fmtD(Math.floor(totMin/60),totMin%60):'-')+'</div><div class="stat-sub">soins + route</div></div>';
+  document.getElementById('nurse-stats').innerHTML='<div class="nurse-legend">'+window.NURSES.map(function(n){
+    var nv=dv.filter(function(e){return e[1].nurseId===n.id;}).length;
+    var nd=done.filter(function(e){return ST.visits[e[0]]&&ST.visits[e[0]].nurseId===n.id;}).length;
+    return '<div class="nurse-badge" style="background:'+n.colors.bg+';color:'+n.colors.color+'">'+n.name+' - '+nd+'/'+nv+' visite'+(nv!==1?'s':'')+'</div>';
+  }).join('')+'</div>';
+  var histEl=document.getElementById('history-container');
+  if(!ST.done.length){histEl.innerHTML='<div class="empty-state" style="padding:1.5rem">Les visites terminees apparaitront ici.</div>';return;}
+  histEl.innerHTML=ST.done.map(function(v){
+    var n=window.NURSES.find(function(x){return x.id===v.nurseId;})||window.NURSES[0];
+    return '<div class="history-item"><div class="visit-avatar" style="background:'+n.colors.bg+';color:'+n.colors.color+';width:34px;height:34px;font-size:12px">'+ini(v.name)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+v.name+'</div><div style="font-size:12px;color:var(--text-muted)">'+v.care+' - '+v.time+' - '+n.name+'</div></div><span class="duration-pill">'+fmt(v.elapsed)+'</span></div>';
+  }).join('');
+}
 
-window.showRouteMap = function(fromEnc, toEnc, nameEnc) {
-  const from = decodeURIComponent(fromEnc);
-  const to = decodeURIComponent(toEnc);
-  const patientName = decodeURIComponent(nameEnc);
-  window.currentMapFrom = from;
-  window.currentMapTo = to;
-  document.getElementById('map-modal-title').textContent = 'Trajet vers ' + patientName;
-  document.getElementById('map-info').textContent = 'De : ' + from + ' vers ' + to;
-  document.getElementById('modal-map').classList.add('open');
-  // Wait for modal to be visible then init map
-  setTimeout(() => initRouteMap(from, to), 150);
-};
-
-window.initRouteMap = function(from, to) {
-  if (typeof google === 'undefined' || !google.maps) {
-    document.getElementById('map-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;">Carte non disponible — utilisez Google Maps</div>';
-    return;
-  }
-  const mapDiv = document.getElementById('map-container');
-  const map = new google.maps.Map(mapDiv, {
-    zoom: 12,
-    center: { lat: 43.3, lng: -0.37 },
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: false,
-  });
-  window.mapInstance = map;
-
-  const ds = new google.maps.DirectionsService();
-  const dr = new google.maps.DirectionsRenderer({
-    map: map,
-    suppressMarkers: false,
-    polylineOptions: { strokeColor: '#0F6E56', strokeWeight: 5 }
-  });
-
-  ds.route({ origin: from, destination: to, travelMode: 'DRIVING' }, (result, status) => {
-    if (status === 'OK') {
-      dr.setDirections(result);
-      const leg = result.routes[0].legs[0];
-      document.getElementById('map-info').innerHTML =
-        '<strong>' + leg.duration.text + '</strong> de trajet · ' + leg.distance.text +
-        '<br><span style="font-size:11px;opacity:0.8">De : ' + from + '</span>';
-    } else {
-      document.getElementById('map-container').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;padding:1rem;text-align:center;">Impossible de calculer le trajet.<br>Vérifiez les adresses.</div>';
+document.getElementById('btn-settings').addEventListener('click',function(){
+  var list=document.getElementById('nurses-settings-list'); list.innerHTML='';
+  window.NURSES.forEach(function(n,i){
+    var div=document.createElement('div'); div.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;';
+    var hdr=document.createElement('div'); hdr.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px';
+    var av=document.createElement('div'); av.style.cssText='width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;background:'+n.colors.bg+';color:'+n.colors.color; av.textContent=n.name[0];
+    var lbl=document.createElement('span'); lbl.style.cssText='font-size:13px;font-weight:500;color:var(--text-muted)'; lbl.textContent='Infirmiere '+(i+1);
+    hdr.appendChild(av); hdr.appendChild(lbl);
+    var row=document.createElement('div'); row.className='form-row';
+    var g1=document.createElement('div'); g1.className='form-group'; g1.style.marginBottom='0';
+    var l1=document.createElement('label'); l1.textContent='Prenom';
+    var i1=document.createElement('input'); i1.type='text'; i1.id='s-name-'+n.id; i1.value=n.name; i1.placeholder='Prenom';
+    g1.appendChild(l1); g1.appendChild(i1);
+    var g2=document.createElement('div'); g2.className='form-group'; g2.style.marginBottom='0';
+    var l2=document.createElement('label'); l2.textContent='Code PIN';
+    var i2=document.createElement('input'); i2.type='text'; i2.id='s-pin-'+n.id; i2.value=n.pin; i2.maxLength=4; i2.inputMode='numeric'; i2.placeholder='1234';
+    g2.appendChild(l2); g2.appendChild(i2);
+    row.appendChild(g1); row.appendChild(g2);
+    div.appendChild(hdr); div.appendChild(row);
+    if(ST.nurse&&n.id===ST.nurse.id){
+      var hd=document.createElement('div'); hd.style.marginTop='10px';
+      var hl=document.createElement('label'); hl.textContent='Mon adresse domicile'; hl.style.cssText='display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px';
+      var hi=document.createElement('input'); hi.type='text'; hi.id='s-home'; hi.placeholder='12 rue de la Paix, 64000 Pau'; hi.value=home();
+      hi.style.cssText='width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text)';
+      hd.appendChild(hl); hd.appendChild(hi); div.appendChild(hd);
     }
-  });
-};
-
-window.closeMapModal = function() {
-  document.getElementById('modal-map').classList.remove('open');
-  window.mapInstance = null;
-};
-
-window.openGmapsFromModal = function() {
-  const url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(window.currentMapFrom)
-    + '&destination=' + encodeURIComponent(window.currentMapTo) + '&travelmode=driving';
-  window.open(url, '_blank');
-};
-
-// ── Patient search dropdown ──
-window.searchPatients = function(q) {
-  const dd = document.getElementById('patient-dropdown');
-  const list = Object.entries(window.patients)
-    .filter(([,p]) => (p.prenom+' '+p.nom).toLowerCase().includes(q.toLowerCase()))
-    .slice(0, 8);
-
-  if (!list.length && q.length > 0) {
-    dd.style.display = 'block';
-    dd.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--text-muted);">Aucun patient trouvé — saisie libre</div>';
-    return;
-  }
-  if (!list.length) { dd.style.display = 'none'; return; }
-
-  dd.style.display = 'block';
-  dd.innerHTML = list.map(([id,p]) => {
-    const colors = window.NURSES[Object.keys(window.patients).indexOf(id) % window.NURSES.length].colors;
-    return `<div onclick="selectPatient('${id}')"
-      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border);"
-      onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='white'">
-      <div style="width:32px;height:32px;border-radius:50%;background:${colors.bg};color:${colors.color};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0;">
-        ${(p.prenom[0]||'')+(p.nom[0]||'')}
-      </div>
-      <div>
-        <div style="font-size:13px;font-weight:500;">${p.prenom} ${p.nom}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${p.adresse||'Adresse non renseignée'}</div>
-      </div>
-    </div>`;
-  }).join('');
-};
-
-window.selectPatient = function(pid) {
-  const p = window.patients[pid];
-  if (!p) return;
-  document.getElementById('v-patient-name').value = p.prenom + ' ' + p.nom;
-  document.getElementById('v-patient-address').value = p.adresse || '';
-  document.getElementById('patient-dropdown').style.display = 'none';
-};
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(e) {
-  const dd = document.getElementById('patient-dropdown');
-  const inp = document.getElementById('v-patient-name');
-  if (dd && inp && !dd.contains(e.target) && e.target !== inp) {
-    dd.style.display = 'none';
-  }
-});
-
-// ── Settings ──
-window.openSettings = function() {
-  const list = document.getElementById('nurses-settings-list');
-  list.innerHTML = '';
-  NURSES.forEach((n, i) => {
-    const div = document.createElement('div');
-    div.style.cssText = 'background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;';
-    
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
-    header.innerHTML = '<div style="width:36px;height:36px;border-radius:50%;background:'+n.colors.bg+';color:'+n.colors.color+';display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;">'+n.name[0]+'</div><span style="font-size:13px;font-weight:500;color:var(--text-muted);">Infirmiere '+(i+1)+'</span>';
-    
-    const row = document.createElement('div');
-    row.className = 'form-row';
-    
-    const g1 = document.createElement('div');
-    g1.className = 'form-group';
-    g1.style.marginBottom = '0';
-    const l1 = document.createElement('label');
-    l1.textContent = 'Prenom';
-    const inp1 = document.createElement('input');
-    inp1.type = 'text';
-    inp1.id = 's-name-' + n.id;
-    inp1.value = n.name;
-    inp1.placeholder = 'Prenom';
-    g1.appendChild(l1);
-    g1.appendChild(inp1);
-    
-    const g2 = document.createElement('div');
-    g2.className = 'form-group';
-    g2.style.marginBottom = '0';
-    const l2 = document.createElement('label');
-    l2.textContent = 'Code PIN (4 chiffres)';
-    const inp2 = document.createElement('input');
-    inp2.type = 'text';
-    inp2.id = 's-pin-' + n.id;
-    inp2.value = n.pin;
-    inp2.maxLength = 4;
-    inp2.inputMode = 'numeric';
-    inp2.placeholder = '1234';
-    g2.appendChild(l2);
-    g2.appendChild(inp2);
-    
-    row.appendChild(g1);
-    row.appendChild(g2);
-    div.appendChild(header);
-    div.appendChild(row);
     list.appendChild(div);
   });
-  // Home address section
-  const homeDiv = document.createElement('div');
-  homeDiv.style.cssText = 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);';
-  const homeLabel = document.createElement('label');
-  homeLabel.textContent = 'Mon adresse de départ (domicile)';
-  homeLabel.style.cssText = 'display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;';
-  const homeInput = document.createElement('input');
-  homeInput.type = 'text';
-  homeInput.id = 's-home-address';
-  homeInput.placeholder = '12 rue de la Paix, 64000 Pau';
-  homeInput.value = window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '';
-  homeInput.style.cssText = 'width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);';
-  homeDiv.appendChild(homeLabel);
-  homeDiv.appendChild(homeInput);
-  list.appendChild(homeDiv);
   document.getElementById('modal-settings').classList.add('open');
-};
-
-window.closeSettings = function() {
-  document.getElementById('modal-settings').classList.remove('open');
-};
-
-window.getHomeAddress = function() {
-  try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; }
-};
-
-window.saveSettings = function() {
-  const updated = NURSES.map(n => {
-    const name = document.getElementById('s-name-'+n.id).value.trim();
-    const pin = document.getElementById('s-pin-'+n.id).value.trim();
-    if (!name || pin.length !== 4) return null;
-    return { name, pin };
-  });
-  if (updated.includes(null)) { showToast('Vérifiez les prénoms et codes PIN (4 chiffres)'); return; }
-  // Save to localStorage so all future loads use new config
-  localStorage.setItem('nurses_config', JSON.stringify(updated));
-  // Also push to Firebase so other devices get it
-  dbSet(ref(db, 'nurses_config'), updated);
-  // Update in memory
-  window.NURSES = NURSES.map((n, i) => ({ ...n, ...updated[i] }));
-  // Refresh login buttons
-  const nurseButtons = document.getElementById('nurse-buttons');
-  if (nurseButtons) {
-    nurseButtons.innerHTML = '';
-    NURSES.forEach(n => {
-      const btn = document.createElement('button');
-      btn.className = 'nurse-btn';
-      btn.dataset.nurse = n.id;
-      btn.onclick = () => selectNurse(n.id);
-      btn.innerHTML = `<div class="avatar" style="background:${n.colors.bg};color:${n.colors.color}">${n.name[0]}</div>
-        <div><div class="name">${n.name}</div><div class="role">Infirmière libérale</div></div>`;
-      nurseButtons.appendChild(btn);
-    });
-  }
-  // Update topbar
-  const topName = document.getElementById('topbar-name');
-  if (topName && window.currentNurse) {
-    const updated_nurse = NURSES.find(n => n.id === window.currentNurse.id);
-    if (updated_nurse) { window.currentNurse = updated_nurse; topName.textContent = updated_nurse.name; }
-  }
-  // Save home address
-  const homeAddr = document.getElementById('s-home-address');
-  if (homeAddr && window.currentNurse) {
-    localStorage.setItem('nurse_home_'+window.currentNurse.id, JSON.stringify(homeAddr.value.trim()));
-  }
-  closeSettings();
-  showToast('Paramètres enregistrés ✓');
-  renderPlanning();
-};
-
-// ── Visit order (manual drag) ──
-window.visitOrder = [];
-
-window.openParcours = function() {
-  const key = dateKey(window.currentDate);
-  const allVisits = Object.entries(window.visits).filter(([,v]) => v.date === key);
-  const withAddr = allVisits.filter(([,v]) => v.patientAddress);
-
-  if (!withAddr.length) { showToast('Ajoutez des adresses aux visites pour lancer le parcours'); return; }
-
-  // Build ordered list: use manual order if set, otherwise sort by time
-  let ordered = [];
-  if (window.visitOrder.length) {
-    window.visitOrder.forEach(id => {
-      const v = window.visits[id];
-      if (v && v.date === key && v.patientAddress) ordered.push(v.patientAddress);
-    });
-    withAddr.forEach(([id,v]) => {
-      if (!window.visitOrder.includes(id)) ordered.push(v.patientAddress);
-    });
-  } else {
-    ordered = withAddr
-      .sort(([,a],[,b]) => a.time.localeCompare(b.time))
-      .map(([,v]) => v.patientAddress);
-  }
-
-  // Get home address as starting point
-  const home = window.currentNurse
-    ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })()
-    : '';
-
-  if (!home) { showToast('Ajoutez votre adresse domicile dans les paramètres ⚙️'); return; }
-
-  // Google Maps: origin=home, destination=last patient, waypoints=all patients in between
-  // Route: home -> p1 -> p2 -> ... -> pN
-  const origin = encodeURIComponent(home);
-  const destination = encodeURIComponent(ordered[ordered.length - 1]);
-  const waypoints = ordered.slice(0, -1).map(a => encodeURIComponent(a)).join('|');
-
-  let url = 'https://www.google.com/maps/dir/?api=1'
-    + '&origin=' + origin
-    + '&destination=' + destination
-    + (waypoints ? '&waypoints=' + waypoints : '')
-    + '&travelmode=driving';
-
-  window.open(url, '_blank');
-  showToast('Parcours lancé — ' + ordered.length + ' arrêt' + (ordered.length > 1 ? 's' : ''));
-};
-
-// ── Drag and drop reorder ──
-window.initDragDrop = function() {
-  const container = document.getElementById('visits-container');
-  let dragSrc = null;
-
-  container.querySelectorAll('.visit-card').forEach(card => {
-    card.draggable = true;
-    card.addEventListener('dragstart', function(e) {
-      dragSrc = this;
-      this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', function() {
-      this.classList.remove('dragging');
-      container.querySelectorAll('.visit-card').forEach(c => c.classList.remove('drag-over'));
-      // Save new order
-      window.visitOrder = [...container.querySelectorAll('.visit-card')].map(c => c.id.replace('vc-',''));
-    });
-    card.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      container.querySelectorAll('.visit-card').forEach(c => c.classList.remove('drag-over'));
-      if (this !== dragSrc) this.classList.add('drag-over');
-      return false;
-    });
-    card.addEventListener('drop', function(e) {
-      e.stopPropagation();
-      if (dragSrc !== this) {
-        const cards = [...container.querySelectorAll('.visit-card')];
-        const srcIdx = cards.indexOf(dragSrc);
-        const dstIdx = cards.indexOf(this);
-        if (srcIdx < dstIdx) this.after(dragSrc);
-        else this.before(dragSrc);
-      }
-      return false;
-    });
-  });
-};
-
-// Sync nurses config from Firebase on load
-window.syncNursesConfig = function() {
-  onValue(ref(db, 'nurses_config'), snap => {
-    const remote = snap.val();
-    if (remote) {
-      localStorage.setItem('nurses_config', JSON.stringify(remote));
-      window.NURSES = DEFAULT_NURSES.map((d, i) => ({ ...d, ...(remote[i]||{}) }));
-    }
-  });
-};
-
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
+document.getElementById('btn-cancel-settings').addEventListener('click',function(){document.getElementById('modal-settings').classList.remove('open');});
+document.getElementById('btn-save-settings').addEventListener('click',function(){
+  var upd=window.NURSES.map(function(n){
+    var ne=document.getElementById('s-name-'+n.id), pe=document.getElementById('s-pin-'+n.id);
+    if(!ne||!pe) return null;
+    var nm=ne.value.trim(), pin=pe.value.trim();
+    if(!nm||pin.length!==4) return null;
+    return {name:nm,pin:pin};
+  });
+  if(upd.includes(null)){toast('Verifiez les prenoms et codes PIN (4 chiffres)');return;}
+  var he=document.getElementById('s-home');
+  if(he&&ST.nurse) localStorage.setItem('nh_'+ST.nurse.id,JSON.stringify(he.value.trim()));
+  localStorage.setItem('nurses_config',JSON.stringify(upd));
+  set(ref(db,'nurses_config'),upd);
+  window.NURSES=DN.map(function(d,i){return Object.assign({},d,upd[i]);});
+  if(ST.nurse){var cur=window.NURSES.find(function(n){return n.id===ST.nurse.id;});if(cur){ST.nurse=cur;document.getElementById('topbar-name').textContent=cur.name;}}
+  document.getElementById('modal-settings').classList.remove('open');
+  toast('Parametres enregistres'); renderP();
+});
+
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click',function(e){if(e.target===o) o.classList.remove('open');});
+});
+
+buildLogin();
+var saved=localStorage.getItem('loggedNurse');
+if(saved){
+  var nurse=window.NURSES.find(function(n){return n.id===saved;});
+  if(nurse){ST.nurse=nurse;document.getElementById('login-screen').remove();document.getElementById('app').style.display='flex';initApp();}
+}
 </script>
 </body>
 </html>
