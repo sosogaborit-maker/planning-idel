@@ -257,6 +257,28 @@
     <div class="form-group"><label>Type de soin</label><select id="v-care"><option>Pansement</option><option>Injection</option><option>Prise de sang</option><option>Perfusion</option><option>Toilette</option><option>Surveillance</option><option>Glycemie</option><option>Soins divers</option></select></div>
     <div class="form-group"><label>Attribuee a</label><select id="v-nurse"></select></div>
     <div class="form-group"><label>Note</label><textarea id="v-note" placeholder="Observations, materiel..."></textarea></div>
+    <div class="form-group" id="recurrence-group">
+      <label>Repetition (optionnel)</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" id="v-recur" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;" />
+        <span style="font-size:13px;color:var(--text-muted)">Repeter cette visite plusieurs jours</span>
+      </div>
+      <div id="recur-options" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-top:6px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px;">Duree de la repetition</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Nombre de jours</label>
+            <input type="number" id="v-recur-days" min="2" max="90" value="6" placeholder="6" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;" />
+          </div>
+          <div style="display:flex;align-items:center;padding-top:20px;color:var(--text-muted);font-size:13px;">ou</div>
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Date de fin</label>
+            <input type="date" id="v-recur-end" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;" />
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--teal);background:var(--teal-light);padding:6px 10px;border-radius:6px;" id="recur-preview">La visite sera creee sur 6 jours consecutifs</div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="btn-cancel-visit">Annuler</button>
       <button class="btn-danger" id="btn-delete-visit" style="display:none">Suppr.</button>
@@ -674,6 +696,13 @@ function openVisitModal(){
   document.getElementById('v-time').value=pad(h%24)+':'+pad(m%60);
   document.getElementById('v-duration').value='00:30';
   document.getElementById('v-note').value='';
+  document.getElementById('v-recur').checked=false;
+  document.getElementById('recur-options').style.display='none';
+  document.getElementById('v-recur-days').value='6';
+  document.getElementById('v-recur-end').value='';
+  // Hide recurrence on edit
+  document.getElementById('recurrence-group').style.display = ST.editV ? 'none' : 'block';
+  updateRecurPreview();
   document.getElementById('modal-visit').classList.add('open');
 }
 
@@ -695,6 +724,47 @@ function editVisit(vid){
 }
 
 document.getElementById('btn-cancel-visit').addEventListener('click',function(){document.getElementById('modal-visit').classList.remove('open');});
+document.getElementById('v-recur').addEventListener('change', updateRecurPreview);
+document.getElementById('v-recur-days').addEventListener('input', updateRecurPreview);
+document.getElementById('v-recur-end').addEventListener('change', updateRecurPreview);
+
+// ── Recurrence ──
+function updateRecurPreview() {
+  var cb = document.getElementById('v-recur');
+  var opts = document.getElementById('recur-options');
+  var preview = document.getElementById('recur-preview');
+  if (!cb || !opts) return;
+  opts.style.display = cb.checked ? 'block' : 'none';
+  if (!cb.checked || !preview) return;
+  var days = parseInt(document.getElementById('v-recur-days').value) || 0;
+  var endDate = document.getElementById('v-recur-end').value;
+  var count = 0;
+  if (endDate) {
+    var start = new Date(ST.date);
+    var end = new Date(endDate);
+    count = Math.round((end - start) / (1000*60*60*24)) + 1;
+    if (count < 1) count = 1;
+  } else {
+    count = days;
+  }
+  preview.textContent = 'La visite sera creee sur ' + count + ' jours consecutifs (y compris aujourd''hui)';
+}
+
+function getRecurDates(startDate, nDays, endDate) {
+  var dates = [];
+  var cur = new Date(startDate);
+  var limit = nDays;
+  if (endDate) {
+    var end = new Date(endDate);
+    limit = Math.round((end - cur) / (1000*60*60*24)) + 1;
+  }
+  for (var i = 0; i < limit; i++) {
+    var d = new Date(cur);
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
 
 // ── Conflict detection ──
 function checkConflict(nurseId, date, startTime, durationMin, excludeId) {
@@ -777,7 +847,20 @@ document.getElementById('btn-save-visit').addEventListener('click',function(){
     set(ref(db,'visits/'+ST.editV),data);
     toast('Visite modifiee');
   } else {
-    push(ref(db,'visits'),data);
+    var recurCb = document.getElementById('v-recur');
+    var isRecur = recurCb && recurCb.checked;
+    if (isRecur) {
+      var nDays = parseInt(document.getElementById('v-recur-days').value) || 1;
+      var endDate = document.getElementById('v-recur-end').value;
+      var dates = getRecurDates(ST.date, nDays, endDate || null);
+      dates.forEach(function(dateStr) {
+        var d = Object.assign({}, data, { date: dateStr });
+        push(ref(db,'visits'), d);
+      });
+      toast('Visite creee sur ' + dates.length + ' jours');
+    } else {
+      push(ref(db,'visits'),data);
+    }
     // Auto-create patient fiche if name not already in patients list
     var nameToCheck = pname.toLowerCase().trim();
     var alreadyExists = Object.values(ST.patients).some(function(p){
