@@ -137,6 +137,10 @@
     .pdd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border)}
     .pdd-item:hover{background:var(--teal-light)}
     .pdd-item:last-child{border-bottom:none}
+    .pause-card{background:#EAF3DE;border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;border:1px solid rgba(59,109,17,0.25);display:flex;align-items:center;gap:12px}
+    .pause-card.active-pause{background:#C0DD97;border-color:var(--green)}
+    .pause-card.done-pause{opacity:0.7}
+    .btn-pause-quick{display:flex;align-items:center;gap:8px;background:var(--green-light);color:var(--green);border:1.5px solid rgba(59,109,17,0.3);border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;width:100%;justify-content:center}
   </style>
 </head>
 <body>
@@ -179,6 +183,7 @@
       <div class="section-header"><span class="section-title" id="visit-count-label">Visites</span></div>
       <button class="btn-parcours" id="btn-parcours" style="display:none">&#128506; Lancer le parcours du jour</button>
       <div class="drag-hint" id="drag-hint" style="display:none">Maintenez et glissez pour reordonner</div>
+      <button class="btn-pause-quick" id="btn-quick-pause">&#9749; Ajouter une pause</button>
       <div id="visits-container"><div class="loading">Chargement...</div></div>
     </div>
     <div class="tab-panel" id="panel-patients">
@@ -226,6 +231,28 @@
     <div style="margin-top:12px"><button class="btn-save" style="width:100%" id="btn-open-gmaps">Ouvrir Google Maps</button></div>
   </div>
 </div>
+<!-- Modal Pause -->
+<div class="modal-overlay" id="modal-pause">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Ajouter une pause</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Heure debut</label><input type="time" id="pause-start" value="12:00" /></div>
+      <div class="form-group"><label>Heure fin prevue</label><input type="time" id="pause-end" value="14:00" /></div>
+    </div>
+    <div class="form-group"><label>Adresse de pause (domicile ou autre)</label>
+      <input type="text" id="pause-addr" placeholder="Laisser vide = domicile" autocomplete="off" />
+    </div>
+    <div class="form-group"><label>Note (optionnel)</label>
+      <input type="text" id="pause-note" placeholder="Dejeuner, repos..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-pause">Annuler</button>
+      <button class="btn-save" id="btn-save-pause">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-settings">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -484,6 +511,8 @@ function renderP() {
   el.innerHTML='';
   dv.forEach(function(entry, i){
     var id=entry[0], v=entry[1];
+    // Handle pause cards differently
+    if(v.isPause) { renderPauseCard(id, v, el); return; }
     var pname=v.patientName||'?';
     var nurse=window.NURSES.find(function(n){return n.id===v.nurseId;})||window.NURSES[0];
     var t=ST.timers[id]; var running=t&&t.running; var done=t&&t.done; var elapsed=t?(t.elapsed||0):0;
@@ -546,6 +575,67 @@ function renderP() {
     ac.appendChild(be);
     el.appendChild(card);
   });
+
+  // Trajet retour domicile apres le dernier patient
+  var lastVisit = dv.length > 0 ? dv[dv.length-1] : null;
+  var homeAddr = home();
+  if (lastVisit && lastVisit[1].patientAddress && homeAddr) {
+    var lastAddr = lastVisit[1].patientAddress;
+    var retKey = 'return_' + dk(ST.date);
+    var rtt = ST.travel[retKey];
+    var rttRunning = rtt && rtt.running;
+    var rttDone = rtt && rtt.done;
+    var rttElapsed = rtt ? (rtt.elapsed || 0) : 0;
+    var rttEst = ST.travelEst[retKey];
+    var retBar = document.createElement('div');
+    retBar.className = 'travel-bar';
+    retBar.style.cssText = 'background:#EAF3DE;border-color:rgba(59,109,17,0.2)';
+    retBar.id = 'tb-' + retKey;
+    var retLbl = document.createElement('span');
+    retLbl.className = 'travel-label';
+    retLbl.style.color = 'var(--green)';
+    retLbl.textContent = 'Retour domicile' + (rttEst ? ' (approx. ' + rttEst + ' min)' : '');
+    retBar.appendChild(retLbl);
+    if (rttDone) {
+      var rtp = document.createElement('span');
+      rtp.className = 'travel-time';
+      rtp.style.color = 'var(--green)';
+      rtp.textContent = 'OK ' + fmt(rttElapsed);
+      retBar.appendChild(rtp);
+    } else if (rttRunning) {
+      var rtv = document.createElement('span');
+      rtv.className = 'travel-time';
+      rtv.style.color = 'var(--green)';
+      rtv.id = 'tt-' + retKey;
+      rtv.textContent = fmt(rttElapsed);
+      retBar.appendChild(rtv);
+      var rtStop = document.createElement('button');
+      rtStop.className = 'btn-travel';
+      rtStop.style.background = 'var(--green)';
+      rtStop.textContent = 'Arrive';
+      (function(k) { rtStop.addEventListener('click', function() { stopTravel(k); }); })(retKey);
+      retBar.appendChild(rtStop);
+    } else {
+      var rtStart = document.createElement('button');
+      rtStart.className = 'btn-travel';
+      rtStart.style.background = 'var(--green)';
+      rtStart.textContent = 'Rentrer';
+      (function(fa, ta, k) {
+        rtStart.addEventListener('click', function() { startTravel(k, fa, ta); });
+      })(lastAddr, homeAddr, retKey);
+      retBar.appendChild(rtStart);
+      var rtCarte = document.createElement('button');
+      rtCarte.className = 'btn-travel-outline';
+      rtCarte.style.cssText = 'background:white;color:var(--green);border:1px solid var(--green)';
+      rtCarte.textContent = 'Carte';
+      (function(fa, ta) {
+        rtCarte.addEventListener('click', function() { showRouteMap(fa, ta, 'domicile'); });
+      })(lastAddr, homeAddr);
+      retBar.appendChild(rtCarte);
+    }
+    el.appendChild(retBar);
+  }
+
   initDrag();
 }
 
@@ -646,6 +736,102 @@ function openParcours(){
   var url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(h)+'&destination='+dest+(wp?'&waypoints='+wp:'')+'&travelmode=driving';
   window.open(url,'_blank');
   toast('Parcours lance - '+addrs.length+' arret'+(addrs.length>1?'s':''));
+}
+
+// ── Pauses ──
+function openPauseModal(prefillStart) {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0'), m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('pause-start').value = prefillStart || (h+':'+m);
+  document.getElementById('pause-end').value = '';
+  document.getElementById('pause-addr').value = home();
+  document.getElementById('pause-note').value = '';
+  document.getElementById('modal-pause').classList.add('open');
+}
+
+document.getElementById('btn-quick-pause').addEventListener('click', function(){ openPauseModal(); });
+document.getElementById('btn-cancel-pause').addEventListener('click', function(){ document.getElementById('modal-pause').classList.remove('open'); });
+document.getElementById('btn-save-pause').addEventListener('click', function(){
+  var pstart = document.getElementById('pause-start').value;
+  var pend = document.getElementById('pause-end').value;
+  var paddr = document.getElementById('pause-addr').value.trim() || home();
+  var pnote = document.getElementById('pause-note').value.trim();
+  if(!pstart){ toast('Indiquez une heure de debut'); return; }
+  var durMin = 60;
+  if(pend) {
+    var sh=parseInt(pstart.split(':')[0])*60+parseInt(pstart.split(':')[1]);
+    var eh=parseInt(pend.split(':')[0])*60+parseInt(pend.split(':')[1]);
+    durMin = Math.max(15, eh - sh);
+  }
+  var data = {
+    patientName: 'Pause',
+    patientAddress: paddr,
+    time: pstart,
+    duration: durMin,
+    care: '--- Pause ---',
+    nurseId: ST.nurse ? ST.nurse.id : '',
+    note: pnote || (pend ? 'Fin prevue : '+pend : ''),
+    date: dk(ST.date),
+    isPause: true,
+    createdBy: ST.nurse ? ST.nurse.id : ''
+  };
+  push(ref(db,'visits'), data);
+  document.getElementById('modal-pause').classList.remove('open');
+  toast('Pause ajoutee');
+});
+
+function renderPauseCard(id, v, el) {
+  var t = ST.timers[id];
+  var running = t && t.running;
+  var done = t && t.done;
+  var elapsed = t ? (t.elapsed || 0) : 0;
+  var card = document.createElement('div');
+  card.className = 'pause-card' + (running ? ' active-pause' : done ? ' done-pause' : '');
+  card.id = 'vc-' + id;
+
+  var icon = document.createElement('span');
+  icon.style.cssText = 'font-size:20px;flex-shrink:0';
+  icon.textContent = 'P';
+
+  var body = document.createElement('div');
+  body.style.flex = '1';
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:600;color:var(--green)';
+  title.textContent = 'Pause - ' + v.time + (v.note ? ' - ' + v.note : '');
+  var sub = document.createElement('div');
+  sub.style.cssText = 'font-size:12px;color:var(--green);opacity:0.8;margin-top:2px';
+  var durH = Math.floor(v.duration/60), durM = v.duration%60;
+  sub.textContent = 'Duree prevue : ' + (durH > 0 ? durH+'h'+pad(durM) : durM+' min');
+  body.appendChild(title); body.appendChild(sub);
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0';
+
+  if (done) {
+    var dp = document.createElement('div'); dp.className='duration-pill'; dp.textContent=fmt(elapsed); actions.appendChild(dp);
+  } else if (running) {
+    var tv = document.createElement('div'); tv.className='timer-val'; tv.style.color='var(--green)'; tv.id='tv-'+id; tv.textContent=fmt(elapsed); actions.appendChild(tv);
+    var bs = document.createElement('button'); bs.className='btn-icon btn-stop'; bs.textContent='X';
+    (function(vid){ bs.addEventListener('click', function(){ stopTimer(vid); }); })(id);
+    actions.appendChild(bs);
+  } else {
+    var bg = document.createElement('button'); bg.className='btn-icon btn-start'; bg.textContent='>';
+    (function(vid){ bg.addEventListener('click', function(){ startTimer(vid); }); })(id);
+    actions.appendChild(bg);
+  }
+
+  var bdel = document.createElement('button'); bdel.className='btn-icon'; bdel.style.cssText='background:var(--red-light);color:var(--red)'; bdel.textContent='X';
+  (function(vid){ bdel.addEventListener('click', function(){
+    if(confirm('Supprimer cette pause ?')){ remove(ref(db,'visits/'+vid)); remove(ref(db,'timers/'+vid)); }
+  }); })(id);
+  actions.appendChild(bdel);
+
+  card.appendChild(icon); card.appendChild(body); card.appendChild(actions);
+  el.appendChild(card);
+
+  // Travel back to pause address and return from it
+  var nextIdx = -1;
+  // We handle travel bars in renderP so just append card here
 }
 
 function initDrag(){
