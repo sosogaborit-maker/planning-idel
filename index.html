@@ -1,1 +1,1075 @@
+<!DOCTYPE html>
+<!-- planning-idel v3 -->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Planning Infirmier</title>
+  <meta name="theme-color" content="#0F6E56" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Planning IDEL" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--teal:#0F6E56;--teal-light:#E1F5EE;--teal-dark:#085041;--blue:#185FA5;--blue-light:#E6F1FB;--red:#A32D2D;--red-light:#FCEBEB;--green:#3B6D11;--green-light:#EAF3DE;--amber:#854F0B;--amber-light:#FAEEDA;--gray:#5F5E5A;--gray-light:#F1EFE8;--gray-200:#B4B2A9;--bg:#F8F9FA;--surface:#fff;--border:rgba(0,0,0,0.1);--text:#1A1A1A;--text-muted:#6B6B6B;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,0.08);--safe-bottom:env(safe-area-inset-bottom,0px)}
+    html,body{height:100%;background:var(--bg);font-family:Inter,sans-serif;color:var(--text)}
+    body{display:flex;flex-direction:column;overflow:hidden}
+    #login-screen{position:fixed;inset:0;background:var(--teal);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;z-index:1000;transition:opacity 0.3s}
+    #login-screen.hidden{opacity:0;pointer-events:none}
+    .login-logo{width:72px;height:72px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem}
+    .login-logo svg{width:40px;height:40px;stroke:white}
+    #login-screen h1{color:white;font-size:24px;font-weight:600;margin-bottom:4px}
+    #login-screen p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:2rem}
+    .login-card{background:white;border-radius:16px;padding:1.5rem;width:100%;max-width:340px}
+    .login-card h2{font-size:16px;font-weight:600;margin-bottom:1.25rem}
+    .nurse-btn{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:white;text-align:left;cursor:pointer;font-family:Inter,sans-serif;font-size:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .nurse-btn .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+    .nurse-btn .name{font-weight:500}
+    .nurse-btn .role{font-size:12px;color:var(--text-muted)}
+    .pin-section{margin-top:1rem;display:none}
+    .pin-section label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px}
+    .pin-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:20px;letter-spacing:8px;text-align:center;font-family:monospace;outline:none}
+    .btn-login{width:100%;padding:12px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:Inter,sans-serif}
+    .pin-error{font-size:12px;color:var(--red);margin-top:6px;text-align:center;display:none}
+    #app{display:flex;flex-direction:column;height:100%}
+    .topbar{background:var(--teal);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+    .topbar-left{display:flex;align-items:center;gap:10px}
+    .topbar-logo{width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .topbar-logo svg{width:18px;height:18px;stroke:white}
+    .topbar h1{font-size:16px;font-weight:600}
+    .topbar-user{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.85)}
+    .topbar-avatar{width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+    .btn-logout{background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:20px;line-height:1;padding:2px 4px}
+    .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .tab-panel{display:none;padding:1rem;padding-bottom:calc(80px + var(--safe-bottom))}
+    .tab-panel.active{display:block}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,0.06)}
+    .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;border:none;background:none;cursor:pointer;font-family:Inter,sans-serif;color:var(--text-muted);font-size:11px;gap:3px}
+    .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .nav-btn.active{color:var(--teal)}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .section-title{font-size:14px;font-weight:500;color:var(--text-muted)}
+    .date-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px;background:white;border-radius:var(--radius);padding:10px 14px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .date-nav button{background:var(--gray-light);border:none;border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+    .date-nav .date-label{flex:1;text-align:center;font-size:14px;font-weight:500}
+    .btn-today{background:var(--teal-light);color:var(--teal);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif}
+    .visit-card{background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;cursor:grab}
+    .visit-card.running{border-color:var(--teal);background:var(--teal-light)}
+    .visit-card.done{border-color:var(--gray-200);opacity:0.75}
+    .visit-card.dragging{opacity:0.4;border:2px dashed var(--teal)}
+    .visit-card.drag-over{border-top:3px solid var(--teal)}
+    .visit-time-col{text-align:center;min-width:44px}
+    .visit-time-col .hour{font-size:16px;font-weight:600;color:var(--text);display:block}
+    .visit-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+    .visit-body{flex:1;min-width:0}
+    .visit-name{font-size:14px;font-weight:500}
+    .visit-address{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .visit-tags{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+    .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+    .tag-care{background:var(--blue-light);color:var(--blue)}
+    .tag-nurse{background:var(--amber-light);color:var(--amber)}
+    .tag-done{background:var(--gray-light);color:var(--gray)}
+    .visit-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+    .timer-val{font-size:14px;font-weight:600;color:var(--teal);font-variant-numeric:tabular-nums;min-width:50px;text-align:right}
+    .btn-icon{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .btn-start{background:var(--green-light);color:var(--green)}
+    .btn-stop{background:var(--red-light);color:var(--red)}
+    .btn-map{background:var(--blue-light);color:var(--blue)}
+    .duration-pill{font-size:11px;background:var(--gray-light);color:var(--gray);padding:2px 8px;border-radius:20px;font-weight:500}
+    .btn-fab{position:fixed;bottom:calc(68px + var(--safe-bottom));right:16px;width:52px;height:52px;border-radius:50%;background:var(--teal);color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 14px rgba(15,110,86,0.4);display:flex;align-items:center;justify-content:center;z-index:99}
+    .btn-parcours{display:flex;align-items:center;gap:8px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:10px;width:100%;justify-content:center}
+    .drag-hint{font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:8px}
+    .travel-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--amber-light);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid rgba(133,79,11,0.2)}
+    .travel-label{font-size:12px;color:var(--amber);font-weight:500;flex:1}
+    .travel-time{font-size:13px;font-weight:600;color:var(--amber);font-variant-numeric:tabular-nums}
+    .btn-travel{background:var(--amber);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-left:4px}
+    .btn-travel-outline{background:white;color:var(--amber);border:1px solid var(--amber);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;margin-left:4px}
+    .search-bar{background:white;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .search-bar svg{width:18px;height:18px;stroke:var(--text-muted);flex-shrink:0}
+    .search-bar input{flex:1;border:none;outline:none;font-size:14px;background:none;font-family:Inter,sans-serif}
+    .patient-card{background:white;border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .patient-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .patient-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;flex-shrink:0}
+    .patient-name{font-size:15px;font-weight:600}
+    .patient-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .info-item{display:flex;flex-direction:column;gap:2px}
+    .info-label{font-size:11px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+    .info-value{font-size:13px;color:var(--text)}
+    .info-full{grid-column:1/-1}
+    .card-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+    .btn-small{flex:1;padding:7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:none;font-size:12px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .stat-card{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid var(--border)}
+    .stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+    .stat-value{font-size:24px;font-weight:600;color:var(--text);margin:4px 0 2px}
+    .stat-sub{font-size:11px;color:var(--text-muted)}
+    .history-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .history-item:last-child{border-bottom:none}
+    .nurse-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .nurse-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:500}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:white;border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:1.25rem 1.25rem calc(1.5rem + var(--safe-bottom))}
+    .modal-handle{width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 1.25rem}
+    .modal h2{font-size:18px;font-weight:600;margin-bottom:1.25rem}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text);-webkit-appearance:none}
+    .form-group textarea{height:70px;resize:none}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modal-actions{display:flex;gap:10px;margin-top:1.25rem}
+    .btn-cancel{flex:1;padding:13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:none;font-size:15px;cursor:pointer;font-family:Inter,sans-serif;color:var(--text)}
+    .btn-save{flex:2;padding:13px;background:var(--teal);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif}
+    .btn-danger{flex:1;padding:13px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:500;cursor:pointer;font-family:Inter,sans-serif}
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s ease}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-size:14px;line-height:1.8}
+    .empty-state svg{width:48px;height:48px;stroke:var(--gray-200);margin-bottom:1rem;display:block;margin-left:auto;margin-right:auto}
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-200);display:inline-block;margin-left:6px}
+    .sync-dot.live{background:#4ade80;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .loading{text-align:center;padding:2rem;color:var(--text-muted);font-size:14px}
+    .patient-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--teal);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+    .pdd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border)}
+    .pdd-item:hover{background:var(--teal-light)}
+    .pdd-item:last-child{border-bottom:none}
+  </style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
+  <h1>Planning IDEL</h1>
+  <p>Application infirmiere liberale</p>
+  <div class="login-card">
+    <h2>Choisissez votre profil</h2>
+    <div id="nurse-buttons"></div>
+    <div class="pin-section" id="pin-section">
+      <label>Code PIN (4 chiffres)</label>
+      <input type="tel" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="..." />
+      <div class="pin-error" id="pin-error">Code incorrect. Reessayez.</div>
+      <button class="btn-login" id="btn-login">Se connecter</button>
+    </div>
+  </div>
+</div>
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
+      <h1>Planning IDEL <span class="sync-dot" id="sync-dot"></span></h1>
+    </div>
+    <div class="topbar-user">
+      <span id="topbar-name"></span>
+      <div class="topbar-avatar" id="topbar-avatar"></div>
+      <button class="btn-logout" id="btn-settings" title="Parametres" style="font-size:18px">&#9881;</button>
+      <button class="btn-logout" id="btn-logout" title="Deconnexion">&#8617;</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="tab-panel active" id="panel-planning">
+      <div class="date-nav">
+        <button id="btn-prev">&#8249;</button>
+        <div class="date-label" id="date-label"></div>
+        <button class="btn-today" id="btn-today">Auj.</button>
+        <button id="btn-next">&#8250;</button>
+      </div>
+      <div class="section-header"><span class="section-title" id="visit-count-label">Visites</span></div>
+      <button class="btn-parcours" id="btn-parcours" style="display:none">&#128506; Lancer le parcours du jour</button>
+      <div class="drag-hint" id="drag-hint" style="display:none">Maintenez et glissez pour reordonner</div>
+      <div id="visits-container"><div class="loading">Chargement...</div></div>
+    </div>
+    <div class="tab-panel" id="panel-patients">
+      <div class="section-header">
+        <span class="section-title" id="patients-count-label">Patients</span>
+        <button class="btn-small" style="flex:0;padding:6px 12px" id="btn-add-patient">+ Ajouter</button>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Rechercher..." id="patient-search" />
+      </div>
+      <div id="patients-container"><div class="loading">Chargement...</div></div>
+    </div>
+    <div class="tab-panel" id="panel-stats">
+      <div class="section-header"><span class="section-title">Bilan du jour</span></div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-header"><span class="section-title">Par infirmiere</span></div>
+      <div id="nurse-stats"></div>
+      <div class="section-header" style="margin-top:14px"><span class="section-title">Visites effectuees</span></div>
+      <div class="card" style="padding:0 14px"><div id="history-container"><div class="loading">Chargement...</div></div></div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-planning">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Planning
+    </button>
+    <button class="nav-btn" id="nav-patients">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Patients
+    </button>
+    <button class="nav-btn" id="nav-stats">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Bilan
+    </button>
+  </nav>
+  <button class="btn-fab" id="fab">+</button>
+</div>
+<div class="modal-overlay" id="modal-map">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:16px" id="map-modal-title">Trajet</h2>
+      <button class="btn-cancel" style="flex:0;padding:6px 12px" id="btn-close-map">X</button>
+    </div>
+    <div style="background:var(--amber-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber)" id="map-info"></div>
+    <div id="map-container" style="width:100%;height:300px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)"></div>
+    <div style="margin-top:12px"><button class="btn-save" style="width:100%" id="btn-open-gmaps">Ouvrir Google Maps</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Parametres</h2>
+    <div id="nurses-settings-list"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-settings">Annuler</button>
+      <button class="btn-save" id="btn-save-settings">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="modal-visit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-visit-title">Nouvelle visite</h2>
+    <div class="form-group">
+      <label>Patient</label>
+      <div style="position:relative">
+        <input type="text" id="v-patient-name" placeholder="Rechercher un patient..." autocomplete="off" style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text)" />
+        <div class="patient-dropdown" id="patient-dropdown"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Adresse</label><input type="text" id="v-patient-address" placeholder="12 rue des Lilas, 64000 Pau" autocomplete="off" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Heure</label><input type="time" id="v-time" value="08:00" /></div>
+      <div class="form-group"><label>Duree (hh:mm)</label><input type="time" id="v-duration" value="00:30" /></div>
+    </div>
+    <div class="form-group"><label>Type de soin</label><select id="v-care"><option>Pansement</option><option>Injection</option><option>Prise de sang</option><option>Perfusion</option><option>Toilette</option><option>Surveillance</option><option>Glycemie</option><option>Soins divers</option></select></div>
+    <div class="form-group"><label>Attribuee a</label><select id="v-nurse"></select></div>
+    <div class="form-group"><label>Note</label><textarea id="v-note" placeholder="Observations, materiel..."></textarea></div>
+    <div class="form-group" id="recurrence-group">
+      <label>Repetition (optionnel)</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" id="v-recur" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;" />
+        <span style="font-size:13px;color:var(--text-muted)">Repeter cette visite plusieurs jours</span>
+      </div>
+      <div id="recur-options" style="display:none;background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-top:6px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px;">Duree de la repetition</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Nombre de jours</label>
+            <input type="number" id="v-recur-days" min="2" max="90" value="6" placeholder="6" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;" />
+          </div>
+          <div style="display:flex;align-items:center;padding-top:20px;color:var(--text-muted);font-size:13px;">ou</div>
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Date de fin</label>
+            <input type="date" id="v-recur-end" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;" />
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--teal);background:var(--teal-light);padding:6px 10px;border-radius:6px;" id="recur-preview">La visite sera creee sur 6 jours consecutifs</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-visit">Annuler</button>
+      <button class="btn-danger" id="btn-delete-visit" style="display:none">Suppr.</button>
+      <button class="btn-save" id="btn-save-visit">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-patient-title">Nouveau patient</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Prenom</label><input type="text" id="p-prenom" placeholder="Prenom" /></div>
+      <div class="form-group"><label>Nom</label><input type="text" id="p-nom" placeholder="Nom" /></div>
+    </div>
+    <div class="form-group"><label>Adresse complete</label><input type="text" id="p-adresse" placeholder="12 rue des Lilas, 64000 Pau" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Telephone</label><input type="tel" id="p-tel" placeholder="06..." /></div>
+      <div class="form-group"><label>Date de naissance</label><input type="date" id="p-ddn" /></div>
+    </div>
+    <div class="form-group"><label>Medecin traitant</label><input type="text" id="p-medecin" placeholder="Dr..." /></div>
+    <div class="form-group"><label>Pathologie / Soins habituels</label><input type="text" id="p-patho" placeholder="Diabete, plaie chronique..." /></div>
+    <div class="form-group"><label>Allergies et Notes importantes</label><textarea id="p-notes" placeholder="Allergie penicilline, anticoagulants..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-patient">Annuler</button>
+      <button class="btn-danger" id="btn-delete-patient" style="display:none">Suppr.</button>
+      <button class="btn-save" id="btn-save-patient">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function() { console.log('SW registered'); });
+  });
+}
+window.gmapsLoaded = false;
+window.gmapsReady = function() { window.gmapsLoaded = true; };
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD8JCF0qaeSVAouEfwChpRy7KDkmWvKSQg&libraries=geometry&callback=gmapsReady"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+var FC = {
+  apiKey: "AIzaSyBMQFFat0fnPHR91ws-V5XiuIeBwWwgeEI",
+  authDomain: "planning-infirmiere-ac9da.firebaseapp.com",
+  databaseURL: "https://planning-infirmiere-ac9da-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "planning-infirmiere-ac9da",
+  storageBucket: "planning-infirmiere-ac9da.firebasestorage.app",
+  messagingSenderId: "351035421949",
+  appId: "1:351035421949:web:1c4438e8b4f1d38019ba94"
+};
+
+var DN = [
+  { id: 'n1', name: 'Anne',   pin: '1234', colors: { bg: '#E1F5EE', color: '#0F6E56' } },
+  { id: 'n2', name: 'Sophie', pin: '2345', colors: { bg: '#E6F1FB', color: '#185FA5' } },
+  { id: 'n3', name: 'Claire', pin: '3456', colors: { bg: '#FAEEDA', color: '#854F0B' } }
+];
+
+function loadNurses() {
+  try {
+    var s = localStorage.getItem('nurses_config');
+    if (s) { var p = JSON.parse(s); return DN.map(function(d,i){ return Object.assign({},d,p[i]); }); }
+  } catch(e) {}
+  return DN.slice();
+}
+window.NURSES = loadNurses();
+
+var app = initializeApp(FC);
+var db = getDatabase(app);
+
+onValue(ref(db, '.info/connected'), function(snap) {
+  var dot = document.getElementById('sync-dot');
+  if (dot) dot.className = 'sync-dot' + (snap.val() ? ' live' : '');
+});
+
+var ST = {
+  nurse: null, selNurse: null, date: new Date(),
+  visits: {}, patients: {}, timers: {}, timerI: {},
+  travel: {}, travelI: {}, travelEst: {},
+  done: [], order: [], editV: null, editP: null,
+  mapFrom: '', mapTo: ''
+};
+
+function ini(n) { return (n||'?').split(' ').map(function(p){return p[0]||'';}).join('').toUpperCase().slice(0,2); }
+function fmt(s) { var m=Math.floor(s/60),x=s%60; return pad(m)+':'+pad(x); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function dk(d) { return d.toISOString().slice(0,10); }
+function home() { try { return JSON.parse(localStorage.getItem('nh_'+(ST.nurse?ST.nurse.id:''))||'""')||''; } catch(e){return '';} }
+function fmtD(h,m) { return h>0?h+'h'+pad(m):m+'min'; }
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');}, 2800);
+}
+
+function listen() {
+  onValue(ref(db,'visits'), function(s){ ST.visits=s.val()||{}; renderP(); renderS(); });
+  onValue(ref(db,'patients'), function(s){ ST.patients=s.val()||{}; renderPat(); });
+  onValue(ref(db,'timers'), function(s){
+    var r=s.val()||{};
+    Object.keys(r).forEach(function(k){ if(!ST.timers[k]||!ST.timers[k].running) ST.timers[k]=r[k]; });
+    renderP();
+  });
+  onValue(ref(db,'travel'), function(s){
+    var r=s.val()||{};
+    Object.keys(r).forEach(function(k){ if(!ST.travel[k]||!ST.travel[k].running) ST.travel[k]=r[k]; });
+    renderP();
+  });
+  onValue(ref(db,'nurses_config'), function(s){
+    var r=s.val();
+    if(r){ localStorage.setItem('nurses_config',JSON.stringify(r)); window.NURSES=DN.map(function(d,i){return Object.assign({},d,r[i]||{});}); }
+  });
+}
+
+function buildLogin() {
+  var c = document.getElementById('nurse-buttons'); c.innerHTML = '';
+  window.NURSES.forEach(function(n){
+    var btn=document.createElement('button'); btn.className='nurse-btn'; btn.dataset.nurse=n.id;
+    var av=document.createElement('div'); av.className='avatar'; av.style.background=n.colors.bg; av.style.color=n.colors.color; av.textContent=n.name[0];
+    var inf=document.createElement('div');
+    var nm=document.createElement('div'); nm.className='name'; nm.textContent=n.name;
+    var rl=document.createElement('div'); rl.className='role'; rl.textContent='Infirmiere liberale';
+    inf.appendChild(nm); inf.appendChild(rl); btn.appendChild(av); btn.appendChild(inf);
+    btn.addEventListener('click', function(){ selNurse(n.id); });
+    c.appendChild(btn);
+  });
+}
+
+function selNurse(id) {
+  ST.selNurse=id;
+  document.querySelectorAll('.nurse-btn').forEach(function(b){b.style.borderColor='';});
+  var s=document.querySelector('[data-nurse="'+id+'"]'); if(s) s.style.borderColor='#0F6E56';
+  document.getElementById('pin-section').style.display='block';
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-error').style.display='none';
+  document.getElementById('pin-input').focus();
+}
+
+function validatePin() {
+  var n=window.NURSES.find(function(x){return x.id===ST.selNurse;});
+  var pin=document.getElementById('pin-input').value;
+  if(n&&pin===n.pin){
+    ST.nurse=n; localStorage.setItem('loggedNurse',n.id);
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').style.display='flex';
+    setTimeout(function(){ var ls=document.getElementById('login-screen'); if(ls) ls.remove(); },400);
+    initApp();
+  } else {
+    document.getElementById('pin-error').style.display='block';
+    document.getElementById('pin-input').value='';
+  }
+}
+
+document.getElementById('btn-login').addEventListener('click', validatePin);
+document.getElementById('pin-input').addEventListener('keydown', function(e){ if(e.key==='Enter') validatePin(); });
+document.getElementById('btn-logout').addEventListener('click', function(){
+  localStorage.removeItem('loggedNurse');
+  Object.values(ST.timerI).forEach(clearInterval);
+  Object.values(ST.travelI).forEach(clearInterval);
+  location.reload();
+});
+
+function initApp() {
+  var n=ST.nurse;
+  document.getElementById('topbar-name').textContent=n.name;
+  var av=document.getElementById('topbar-avatar'); av.textContent=n.name[0]; av.style.background=n.colors.bg; av.style.color=n.colors.color;
+  goToday(); listen();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  document.getElementById('fab').style.display=tab==='planning'?'flex':'none';
+  if(tab==='stats') renderS();
+  if(tab==='patients') renderPat();
+}
+
+document.getElementById('nav-planning').addEventListener('click', function(){switchTab('planning');});
+document.getElementById('nav-patients').addEventListener('click', function(){switchTab('patients');});
+document.getElementById('nav-stats').addEventListener('click', function(){switchTab('stats');});
+document.getElementById('btn-prev').addEventListener('click', function(){ST.date.setDate(ST.date.getDate()-1); renderP();});
+document.getElementById('btn-next').addEventListener('click', function(){ST.date.setDate(ST.date.getDate()+1); renderP();});
+document.getElementById('btn-today').addEventListener('click', goToday);
+document.getElementById('fab').addEventListener('click', openVisitModal);
+document.getElementById('btn-add-patient').addEventListener('click', function(){openPatientModal(null);});
+document.getElementById('btn-parcours').addEventListener('click', openParcours);
+
+function goToday(){ ST.date=new Date(); renderP(); }
+
+function renderP() {
+  var key=dk(ST.date);
+  document.getElementById('date-label').textContent=ST.date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  var dv=Object.entries(ST.visits).filter(function(e){return e[1].date===key;}).sort(function(a,b){return a[1].time.localeCompare(b[1].time);});
+  document.getElementById('visit-count-label').textContent=dv.length+' visite'+(dv.length!==1?'s':'')+' prevues';
+  var hasA=dv.some(function(e){return e[1].patientAddress;});
+  document.getElementById('btn-parcours').style.display=hasA?'flex':'none';
+  document.getElementById('drag-hint').style.display=dv.length>1?'block':'none';
+  var el=document.getElementById('visits-container');
+  if(!dv.length){ el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>Aucune visite ce jour.<br>Appuyez sur + pour en ajouter une.</div>'; return; }
+  el.innerHTML='';
+  dv.forEach(function(entry, i){
+    var id=entry[0], v=entry[1];
+    var pname=v.patientName||'?';
+    var nurse=window.NURSES.find(function(n){return n.id===v.nurseId;})||window.NURSES[0];
+    var t=ST.timers[id]; var running=t&&t.running; var done=t&&t.done; var elapsed=t?(t.elapsed||0):0;
+    var prevAddr=i===0?home():(dv[i-1][1].patientAddress||'');
+    var toAddr=v.patientAddress||'';
+    if(prevAddr&&toAddr){
+      var tk=id; var tt=ST.travel[tk]; var trun=tt&&tt.running; var tdone=tt&&tt.done; var tel=tt?(tt.elapsed||0):0;
+      var est=ST.travelEst[tk];
+      var tbar=document.createElement('div'); tbar.className='travel-bar'; tbar.id='tb-'+tk;
+      var tlbl=document.createElement('span'); tlbl.className='travel-label';
+      tlbl.textContent=(i===0?'Depuis domicile':'Trajet')+(est?' (approx. '+est+' min)':'');
+      tbar.appendChild(tlbl);
+      if(tdone){
+        var tp=document.createElement('span'); tp.className='travel-time'; tp.textContent='OK '+fmt(tel); tbar.appendChild(tp);
+      } else if(trun){
+        var tv=document.createElement('span'); tv.className='travel-time'; tv.id='tt-'+tk; tv.textContent=fmt(tel); tbar.appendChild(tv);
+        var bs=document.createElement('button'); bs.className='btn-travel'; bs.textContent='Arrive';
+        (function(k){bs.addEventListener('click',function(){stopTravel(k);});})(tk);
+        tbar.appendChild(bs);
+      } else {
+        var br=document.createElement('button'); br.className='btn-travel'; br.textContent='En route';
+        (function(k,fa,ta){br.addEventListener('click',function(){startTravel(k,fa,ta);});})(tk,prevAddr,toAddr);
+        tbar.appendChild(br);
+        var bc=document.createElement('button'); bc.className='btn-travel-outline'; bc.textContent='Carte';
+        (function(fa,ta,pn){bc.addEventListener('click',function(){showRouteMap(fa,ta,pn);});})(prevAddr,toAddr,pname);
+        tbar.appendChild(bc);
+      }
+      el.appendChild(tbar);
+    }
+    var card=document.createElement('div');
+    card.className='visit-card'+(running?' running':done?' done':'');
+    card.id='vc-'+id; card.draggable=true;
+    var tagsHtml='<span class="tag tag-care">'+v.care+'</span><span class="tag tag-nurse">'+nurse.name+'</span>';
+    if(done) tagsHtml+='<span class="tag tag-done">OK '+fmt(elapsed)+'</span>';
+    if(v.note) tagsHtml+='<span class="tag" style="background:var(--gray-light);color:var(--gray)">'+v.note.slice(0,20)+(v.note.length>20?'...':'')+'</span>';
+    card.innerHTML='<div class="visit-time-col"><span class="hour">'+v.time+'</span></div>'+
+      '<div class="visit-avatar" style="background:'+nurse.colors.bg+';color:'+nurse.colors.color+'">'+ini(pname)+'</div>'+
+      '<div class="visit-body"><div class="visit-name">'+pname+'</div><div class="visit-address">'+(v.patientAddress||'')+'</div><div class="visit-tags">'+tagsHtml+'</div></div>'+
+      '<div class="visit-actions"></div>';
+    var ac=card.querySelector('.visit-actions');
+    if(running){
+      var tv2=document.createElement('div'); tv2.className='timer-val'; tv2.id='tv-'+id; tv2.textContent=fmt(elapsed); ac.appendChild(tv2);
+      var bst=document.createElement('button'); bst.className='btn-icon btn-stop'; bst.textContent='X';
+      (function(vid){bst.addEventListener('click',function(){stopTimer(vid);});})(id);
+      ac.appendChild(bst);
+    } else if(done){
+      var dp=document.createElement('div'); dp.className='duration-pill'; dp.textContent=fmt(elapsed); ac.appendChild(dp);
+    } else {
+      var bgo=document.createElement('button'); bgo.className='btn-icon btn-start'; bgo.textContent='>';
+      (function(vid){bgo.addEventListener('click',function(){startTimer(vid);});})(id);
+      ac.appendChild(bgo);
+    }
+    if(toAddr){
+      var bm=document.createElement('button'); bm.className='btn-icon btn-map'; bm.textContent='M';
+      (function(vid){bm.addEventListener('click',function(){openMaps(vid);});})(id);
+      ac.appendChild(bm);
+    }
+    var be=document.createElement('button'); be.className='btn-icon'; be.style.background='var(--gray-light)'; be.style.color='var(--gray)'; be.textContent='E';
+    (function(vid){be.addEventListener('click',function(){editVisit(vid);});})(id);
+    ac.appendChild(be);
+    el.appendChild(card);
+  });
+  initDrag();
+}
+
+function startTimer(vid){
+  if(ST.timers[vid]&&ST.timers[vid].running) return;
+  var t={running:true,elapsed:0,startMs:Date.now(),done:false};
+  ST.timers[vid]=t;
+  set(ref(db,'timers/'+vid),{running:true,elapsed:0,done:false});
+  ST.timerI[vid]=setInterval(function(){
+    ST.timers[vid].elapsed=Math.floor((Date.now()-t.startMs)/1000);
+    var e=document.getElementById('tv-'+vid); if(e) e.textContent=fmt(ST.timers[vid].elapsed);
+  },1000);
+  renderP(); toast('Visite demarree');
+}
+
+function stopTimer(vid){
+  if(!ST.timers[vid]) return;
+  clearInterval(ST.timerI[vid]);
+  var el=ST.timers[vid].elapsed;
+  ST.timers[vid]={running:false,elapsed:el,done:true};
+  set(ref(db,'timers/'+vid),{running:false,elapsed:el,done:true});
+  var v=ST.visits[vid];
+  if(v) ST.done.unshift({name:v.patientName||'?',care:v.care,elapsed:el,time:v.time,nurseId:ST.nurse.id});
+  renderP(); toast('Visite terminee - '+fmt(el));
+}
+
+function startTravel(key,fa,ta){
+  if(ST.travel[key]&&ST.travel[key].running) return;
+  var t={running:true,elapsed:0,startMs:Date.now(),done:false};
+  ST.travel[key]=t;
+  ST.travelI[key]=setInterval(function(){
+    ST.travel[key].elapsed=Math.floor((Date.now()-t.startMs)/1000);
+    var e=document.getElementById('tt-'+key); if(e) e.textContent=fmt(ST.travel[key].elapsed);
+  },1000);
+  if(window.gmapsLoaded&&typeof google!=='undefined'){
+    new google.maps.DirectionsService().route({origin:fa,destination:ta,travelMode:'DRIVING'},function(r,s){
+      if(s==='OK'){ ST.travelEst[key]=Math.round(r.routes[0].legs[0].duration.value/60); renderP(); }
+    });
+  }
+  renderP(); toast('Trajet demarre');
+  window.open('https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(fa)+'&destination='+encodeURIComponent(ta)+'&travelmode=driving','_blank');
+}
+
+function stopTravel(key){
+  if(!ST.travel[key]) return;
+  clearInterval(ST.travelI[key]);
+  var el=ST.travel[key].elapsed;
+  ST.travel[key]={running:false,elapsed:el,done:true};
+  set(ref(db,'travel/'+key),{elapsed:el,done:true});
+  renderP(); toast('Trajet termine - '+fmt(el));
+}
+
+function openMaps(vid){
+  var v=ST.visits[vid];
+  if(!v||!v.patientAddress){toast('Ajoutez une adresse dans cette visite');return;}
+  window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(v.patientAddress)+'&travelmode=driving','_blank');
+}
+
+function showRouteMap(fa,ta,pname){
+  ST.mapFrom=fa; ST.mapTo=ta;
+  document.getElementById('map-modal-title').textContent='Trajet vers '+pname;
+  document.getElementById('map-info').textContent=fa+' vers '+ta;
+  document.getElementById('modal-map').classList.add('open');
+  setTimeout(function(){initRouteMap(fa,ta);},200);
+}
+
+function initRouteMap(from,to){
+  var d=document.getElementById('map-container');
+  if(!window.gmapsLoaded||typeof google==='undefined'){
+    d.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;text-align:center;color:var(--text-muted)">Carte en cours de chargement. Utilisez le bouton Google Maps.</div>';
+    return;
+  }
+  var map=new google.maps.Map(d,{zoom:12,center:{lat:43.3,lng:-0.37},mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
+  var dr=new google.maps.DirectionsRenderer({map:map,polylineOptions:{strokeColor:'#0F6E56',strokeWeight:5}});
+  new google.maps.DirectionsService().route({origin:from,destination:to,travelMode:'DRIVING'},function(r,s){
+    if(s==='OK'){
+      dr.setDirections(r);
+      var leg=r.routes[0].legs[0];
+      document.getElementById('map-info').textContent=leg.duration.text+' - '+leg.distance.text;
+    } else {
+      d.innerHTML='<div style="padding:2rem;text-align:center;color:var(--text-muted)">Impossible de calculer le trajet. Verifiez les adresses.</div>';
+    }
+  });
+}
+
+document.getElementById('btn-close-map').addEventListener('click',function(){document.getElementById('modal-map').classList.remove('open');});
+document.getElementById('btn-open-gmaps').addEventListener('click',function(){
+  window.open('https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(ST.mapFrom)+'&destination='+encodeURIComponent(ST.mapTo)+'&travelmode=driving','_blank');
+});
+
+function openParcours(){
+  var key=dk(ST.date), h=home();
+  if(!h){toast('Ajoutez votre adresse domicile dans les parametres');return;}
+  var addrs=Object.entries(ST.visits).filter(function(e){return e[1].date===key&&e[1].patientAddress;}).sort(function(a,b){return a[1].time.localeCompare(b[1].time);}).map(function(e){return e[1].patientAddress;});
+  if(!addrs.length){toast('Aucune adresse renseignee pour les visites du jour');return;}
+  var dest=encodeURIComponent(addrs[addrs.length-1]);
+  var wp=addrs.slice(0,-1).map(function(a){return encodeURIComponent(a);}).join('|');
+  var url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(h)+'&destination='+dest+(wp?'&waypoints='+wp:'')+'&travelmode=driving';
+  window.open(url,'_blank');
+  toast('Parcours lance - '+addrs.length+' arret'+(addrs.length>1?'s':''));
+}
+
+function initDrag(){
+  var c=document.getElementById('visits-container'), src=null;
+  c.querySelectorAll('.visit-card').forEach(function(card){
+    card.addEventListener('dragstart',function(){src=this;this.classList.add('dragging');});
+    card.addEventListener('dragend',function(){this.classList.remove('dragging');c.querySelectorAll('.visit-card').forEach(function(x){x.classList.remove('drag-over');});});
+    card.addEventListener('dragover',function(e){e.preventDefault();c.querySelectorAll('.visit-card').forEach(function(x){x.classList.remove('drag-over');});if(this!==src)this.classList.add('drag-over');});
+    card.addEventListener('drop',function(e){e.stopPropagation();if(src&&src!==this){var cc=Array.from(c.querySelectorAll('.visit-card'));if(cc.indexOf(src)<cc.indexOf(this))this.after(src);else this.before(src);}});
+  });
+}
+
+document.getElementById('v-patient-name').addEventListener('input',function(){searchPat(this.value);});
+document.getElementById('v-patient-name').addEventListener('focus',function(){searchPat(this.value);});
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('patient-dropdown'),inp=document.getElementById('v-patient-name');
+  if(dd&&inp&&!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+});
+
+function searchPat(q){
+  var dd=document.getElementById('patient-dropdown');
+  var list=Object.entries(ST.patients).filter(function(e){return (e[1].prenom+' '+e[1].nom).toLowerCase().includes(q.toLowerCase());}).slice(0,8);
+  if(!list.length){dd.style.display=q.length>0?'block':'none';dd.innerHTML=q.length>0?'<div style="padding:10px 14px;font-size:13px;color:var(--text-muted)">Aucun patient - saisie libre</div>':'';return;}
+  dd.style.display='block'; dd.innerHTML='';
+  list.forEach(function(entry,idx){
+    var pid=entry[0],p=entry[1];
+    var nc=window.NURSES[idx%window.NURSES.length].colors;
+    var item=document.createElement('div'); item.className='pdd-item';
+    item.innerHTML='<div style="width:32px;height:32px;border-radius:50%;background:'+nc.bg+';color:'+nc.color+';display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0">'+(p.prenom[0]||'')+(p.nom[0]||'')+'</div><div><div style="font-size:13px;font-weight:500">'+p.prenom+' '+p.nom+'</div><div style="font-size:11px;color:var(--text-muted)">'+(p.adresse||'Adresse non renseignee')+'</div></div>';
+    (function(pat){item.addEventListener('click',function(){document.getElementById('v-patient-name').value=pat.prenom+' '+pat.nom;document.getElementById('v-patient-address').value=pat.adresse||'';document.getElementById('patient-dropdown').style.display='none';});})(p);
+    dd.appendChild(item);
+  });
+}
+
+function openVisitModal(){
+  ST.editV=null;
+  document.getElementById('modal-visit-title').textContent='Nouvelle visite';
+  document.getElementById('btn-delete-visit').style.display='none';
+  document.getElementById('v-patient-name').value='';
+  document.getElementById('v-patient-address').value='';
+  document.getElementById('patient-dropdown').style.display='none';
+  var cw2 = document.getElementById('conflict-warning'); if(cw2) cw2.remove();
+  var ns=document.getElementById('v-nurse');
+  ns.innerHTML=window.NURSES.map(function(n){return '<option value="'+n.id+'"'+(ST.nurse&&n.id===ST.nurse.id?' selected':'')+'>'+n.name+'</option>';}).join('');
+  var now=new Date(), m=Math.ceil(now.getMinutes()/15)*15, h=now.getHours()+Math.floor(m/60);
+  document.getElementById('v-time').value=pad(h%24)+':'+pad(m%60);
+  document.getElementById('v-duration').value='00:30';
+  document.getElementById('v-note').value='';
+  document.getElementById('v-recur').checked=false;
+  document.getElementById('recur-options').style.display='none';
+  document.getElementById('v-recur-days').value='6';
+  document.getElementById('v-recur-end').value='';
+  // Hide recurrence on edit
+  document.getElementById('recurrence-group').style.display = ST.editV ? 'none' : 'block';
+  updateRecurPreview();
+  document.getElementById('modal-visit').classList.add('open');
+}
+
+function editVisit(vid){
+  var v=ST.visits[vid]; if(!v) return;
+  ST.editV=vid;
+  document.getElementById('modal-visit-title').textContent='Modifier la visite';
+  document.getElementById('btn-delete-visit').style.display='block';
+  document.getElementById('v-patient-name').value=v.patientName||'';
+  document.getElementById('v-patient-address').value=v.patientAddress||'';
+  var ns=document.getElementById('v-nurse');
+  ns.innerHTML=window.NURSES.map(function(n){return '<option value="'+n.id+'"'+(n.id===v.nurseId?' selected':'')+'>'+n.name+'</option>';}).join('');
+  document.getElementById('v-time').value=v.time;
+  var dh=Math.floor((v.duration||30)/60), dm=(v.duration||30)%60;
+  document.getElementById('v-duration').value=pad(dh)+':'+pad(dm);
+  document.getElementById('v-care').value=v.care;
+  document.getElementById('v-note').value=v.note||'';
+  document.getElementById('modal-visit').classList.add('open');
+}
+
+document.getElementById('btn-cancel-visit').addEventListener('click',function(){document.getElementById('modal-visit').classList.remove('open');});
+document.getElementById('v-recur').addEventListener('change', updateRecurPreview);
+document.getElementById('v-recur-days').addEventListener('input', updateRecurPreview);
+document.getElementById('v-recur-end').addEventListener('change', updateRecurPreview);
+
+// ── Recurrence ──
+function updateRecurPreview() {
+  var cb = document.getElementById('v-recur');
+  var opts = document.getElementById('recur-options');
+  var preview = document.getElementById('recur-preview');
+  if (!cb || !opts) return;
+  opts.style.display = cb.checked ? 'block' : 'none';
+  if (!cb.checked || !preview) return;
+  var days = parseInt(document.getElementById('v-recur-days').value) || 0;
+  var endDate = document.getElementById('v-recur-end').value;
+  var count = 0;
+  if (endDate) {
+    var start = new Date(ST.date);
+    var end = new Date(endDate);
+    count = Math.round((end - start) / (1000*60*60*24)) + 1;
+    if (count < 1) count = 1;
+  } else {
+    count = days;
+  }
+  preview.textContent = 'La visite sera creee sur ' + count + ' jours consecutifs (y compris aujourd''hui)';
+}
+
+function getRecurDates(startDate, nDays, endDate) {
+  var dates = [];
+  var cur = new Date(startDate);
+  var limit = nDays;
+  if (endDate) {
+    var end = new Date(endDate);
+    limit = Math.round((end - cur) / (1000*60*60*24)) + 1;
+  }
+  for (var i = 0; i < limit; i++) {
+    var d = new Date(cur);
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
+
+// ── Conflict detection ──
+function checkConflict(nurseId, date, startTime, durationMin, excludeId) {
+  var startH = parseInt(startTime.split(':')[0]), startM = parseInt(startTime.split(':')[1]);
+  var startTotal = startH * 60 + startM;
+  var endTotal = startTotal + durationMin;
+  var conflicts = [];
+  Object.entries(ST.visits).forEach(function(e) {
+    var vid = e[0], v = e[1];
+    if (vid === excludeId) return;
+    if (v.date !== date || v.nurseId !== nurseId) return;
+    var vh = parseInt(v.time.split(':')[0]), vm = parseInt(v.time.split(':')[1]);
+    var vStart = vh * 60 + vm;
+    var vEnd = vStart + (v.duration || 30);
+    if (startTotal < vEnd && endTotal > vStart) {
+      conflicts.push({ name: v.patientName || '?', time: v.time, duration: v.duration || 30 });
+    }
+  });
+  return conflicts;
+}
+
+function findNextSlot(nurseId, date, startTime, durationMin) {
+  var slots = [];
+  Object.entries(ST.visits).forEach(function(e) {
+    var v = e[1];
+    if (v.date !== date || v.nurseId !== nurseId) return;
+    var h = parseInt(v.time.split(':')[0]), m = parseInt(v.time.split(':')[1]);
+    slots.push({ start: h * 60 + m, end: h * 60 + m + (v.duration || 30) });
+  });
+  slots.sort(function(a, b) { return a.start - b.start; });
+  // Start from the requested time, not 8h00
+  var sh = parseInt(startTime.split(':')[0]), sm = parseInt(startTime.split(':')[1]);
+  var candidate = sh * 60 + sm;
+  for (var i = 0; i < slots.length; i++) {
+    if (candidate + durationMin <= slots[i].start) break;
+    if (slots[i].end > candidate) candidate = slots[i].end;
+  }
+  return pad(Math.floor(candidate / 60)) + ':' + pad(candidate % 60);
+}
+
+function showConflictWarning(conflicts, nextSlot) {
+  var msg = 'Conflit avec ' + conflicts.map(function(c) { return c.name + ' a ' + c.time; }).join(', ') + '.';
+  msg += ' Prochain creneau libre : ' + nextSlot + '.';
+  // Show in a styled warning div inside the modal
+  var existing = document.getElementById('conflict-warning');
+  if (existing) existing.remove();
+  var warn = document.createElement('div');
+  warn.id = 'conflict-warning';
+  warn.style.cssText = 'background:var(--amber-light);border:1px solid rgba(133,79,11,0.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);';
+  warn.innerHTML = '<strong>Attention :</strong> ' + msg + '<br><button id="btn-use-slot" style="margin-top:6px;background:var(--amber);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Utiliser ' + nextSlot + '</button>';
+  var firstGroup = document.querySelector('#modal-visit .form-group');
+  firstGroup.parentNode.insertBefore(warn, firstGroup);
+  document.getElementById('btn-use-slot').addEventListener('click', function() {
+    document.getElementById('v-time').value = nextSlot;
+    warn.remove();
+  });
+  return false;
+}
+
+document.getElementById('btn-save-visit').addEventListener('click',function(){
+  // Remove any previous warning
+  var cw = document.getElementById('conflict-warning');
+  if (cw) cw.remove();
+  var pname=document.getElementById('v-patient-name').value.trim();
+  var time=document.getElementById('v-time').value;
+  if(!pname||!time){toast('Indiquez le nom du patient');return;}
+  var dur=document.getElementById('v-duration').value.split(':');
+  var durationMin = parseInt(dur[0])*60+parseInt(dur[1]);
+  var nurseId = document.getElementById('v-nurse').value;
+  var dateKey2 = dk(ST.date);
+  // Check conflicts for this nurse
+  var conflicts = checkConflict(nurseId, dateKey2, time, durationMin, ST.editV);
+  if (conflicts.length > 0) {
+    var nextSlot = findNextSlot(nurseId, dateKey2, time, durationMin);
+    showConflictWarning(conflicts, nextSlot);
+    return;
+  }
+  var data={patientName:pname,patientAddress:document.getElementById('v-patient-address').value.trim(),time:time,duration:durationMin,care:document.getElementById('v-care').value,nurseId:document.getElementById('v-nurse').value,note:document.getElementById('v-note').value.trim(),date:dk(ST.date),createdBy:ST.nurse?ST.nurse.id:''};
+  if(ST.editV){
+    set(ref(db,'visits/'+ST.editV),data);
+    toast('Visite modifiee');
+  } else {
+    var recurCb = document.getElementById('v-recur');
+    var isRecur = recurCb && recurCb.checked;
+    if (isRecur) {
+      var nDays = parseInt(document.getElementById('v-recur-days').value) || 1;
+      var endDate = document.getElementById('v-recur-end').value;
+      var dates = getRecurDates(ST.date, nDays, endDate || null);
+      dates.forEach(function(dateStr) {
+        var d = Object.assign({}, data, { date: dateStr });
+        push(ref(db,'visits'), d);
+      });
+      toast('Visite creee sur ' + dates.length + ' jours');
+    } else {
+      push(ref(db,'visits'),data);
+    }
+    // Auto-create patient fiche if name not already in patients list
+    var nameToCheck = pname.toLowerCase().trim();
+    var alreadyExists = Object.values(ST.patients).some(function(p){
+      return (p.prenom+' '+p.nom).toLowerCase().trim() === nameToCheck;
+    });
+    if(!alreadyExists && pname) {
+      // Split name: first word = prenom, rest = nom
+      var parts = pname.trim().split(' ');
+      var prenom = parts[0] || pname;
+      var nom = parts.slice(1).join(' ') || '';
+      var patData = {
+        prenom: prenom, nom: nom,
+        adresse: document.getElementById('v-patient-address').value.trim(),
+        tel: '', ddn: '', medecin: '', patho: '', notes: ''
+      };
+      push(ref(db,'patients'), patData);
+      toast('Visite ajoutee + fiche patient creee');
+    } else {
+      // Update address in existing patient fiche if address was filled
+      var addr = document.getElementById('v-patient-address').value.trim();
+      if(addr) {
+        var matchEntry = Object.entries(ST.patients).find(function(e){
+          return (e[1].prenom+' '+e[1].nom).toLowerCase().trim() === nameToCheck;
+        });
+        if(matchEntry && !matchEntry[1].adresse) {
+          set(ref(db,'patients/'+matchEntry[0]+'/adresse'), addr);
+        }
+      }
+      toast('Visite ajoutee');
+    }
+  }
+  document.getElementById('modal-visit').classList.remove('open');
+});
+document.getElementById('btn-delete-visit').addEventListener('click',function(){
+  if(!ST.editV) return;
+  if(!confirm('Supprimer cette visite ?')) return;
+  remove(ref(db,'visits/'+ST.editV)); remove(ref(db,'timers/'+ST.editV));
+  document.getElementById('modal-visit').classList.remove('open'); toast('Visite supprimee');
+});
+
+function openPatientModal(pid){
+  ST.editP=pid||null;
+  if(pid){
+    var p=ST.patients[pid];
+    document.getElementById('modal-patient-title').textContent='Modifier le patient';
+    document.getElementById('btn-delete-patient').style.display='block';
+    document.getElementById('p-prenom').value=p.prenom||'';
+    document.getElementById('p-nom').value=p.nom||'';
+    document.getElementById('p-adresse').value=p.adresse||'';
+    document.getElementById('p-tel').value=p.tel||'';
+    document.getElementById('p-ddn').value=p.ddn||'';
+    document.getElementById('p-medecin').value=p.medecin||'';
+    document.getElementById('p-patho').value=p.patho||'';
+    document.getElementById('p-notes').value=p.notes||'';
+  } else {
+    document.getElementById('modal-patient-title').textContent='Nouveau patient';
+    document.getElementById('btn-delete-patient').style.display='none';
+    ['p-prenom','p-nom','p-adresse','p-tel','p-ddn','p-medecin','p-patho','p-notes'].forEach(function(id){document.getElementById(id).value='';});
+  }
+  document.getElementById('modal-patient').classList.add('open');
+}
+document.getElementById('btn-cancel-patient').addEventListener('click',function(){document.getElementById('modal-patient').classList.remove('open');});
+document.getElementById('btn-save-patient').addEventListener('click',function(){
+  var prenom=document.getElementById('p-prenom').value.trim(), nom=document.getElementById('p-nom').value.trim();
+  if(!prenom||!nom){toast('Prenom et nom requis');return;}
+  var data={prenom:prenom,nom:nom,adresse:document.getElementById('p-adresse').value.trim(),tel:document.getElementById('p-tel').value.trim(),ddn:document.getElementById('p-ddn').value,medecin:document.getElementById('p-medecin').value.trim(),patho:document.getElementById('p-patho').value.trim(),notes:document.getElementById('p-notes').value.trim()};
+  if(ST.editP){set(ref(db,'patients/'+ST.editP),data);toast('Patient modifie');}
+  else{push(ref(db,'patients'),data);toast('Patient ajoute');}
+  document.getElementById('modal-patient').classList.remove('open');
+});
+document.getElementById('btn-delete-patient').addEventListener('click',function(){
+  if(!ST.editP) return;
+  if(!confirm('Supprimer ce patient ?')) return;
+  remove(ref(db,'patients/'+ST.editP));
+  document.getElementById('modal-patient').classList.remove('open'); toast('Patient supprime');
+});
+
+document.getElementById('patient-search').addEventListener('input',function(){filterPat(this.value);});
+
+function renderPat(){ filterPat(document.getElementById('patient-search').value||''); }
+
+function filterPat(q){
+  var list=Object.entries(ST.patients).filter(function(e){return (e[1].prenom+' '+e[1].nom+(e[1].adresse||'')).toLowerCase().includes(q.toLowerCase());}).sort(function(a,b){return a[1].nom.localeCompare(b[1].nom);});
+  document.getElementById('patients-count-label').textContent=list.length+' patient'+(list.length!==1?'s':'');
+  var el=document.getElementById('patients-container');
+  if(!list.length){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Aucun patient trouve.</div>';return;}
+  el.innerHTML='';
+  list.forEach(function(entry,idx){
+    var id=entry[0],p=entry[1];
+    var age=p.ddn?Math.floor((Date.now()-new Date(p.ddn))/(365.25*24*3600*1000)):null;
+    var nc=window.NURSES[idx%window.NURSES.length].colors;
+    var card=document.createElement('div'); card.className='patient-card';
+    card.innerHTML='<div class="patient-header"><div class="patient-avatar" style="background:'+nc.bg+';color:'+nc.color+'">'+ini(p.prenom+' '+p.nom)+'</div><div><div class="patient-name">'+p.prenom+' '+p.nom+'</div><div class="patient-sub">'+(age?age+' ans - ':'')+(p.medecin||'Medecin non renseigne')+'</div></div></div>'+
+      '<div class="info-grid">'+
+        '<div class="info-item"><span class="info-label">Telephone</span><span class="info-value">'+(p.tel||'-')+'</span></div>'+
+        (p.patho?'<div class="info-item info-full"><span class="info-label">Pathologie</span><span class="info-value">'+p.patho+'</span></div>':'')+
+        (p.notes?'<div class="info-item info-full"><span class="info-label">Allergies / Notes</span><span class="info-value" style="color:var(--red)">'+p.notes+'</span></div>':'')+
+        '<div class="info-item info-full"><span class="info-label">Adresse</span><span class="info-value">'+(p.adresse||'-')+'</span></div>'+
+      '</div>'+
+      '<div class="card-actions"></div>';
+    var ac=card.querySelector('.card-actions');
+    var bN=document.createElement('button'); bN.className='btn-small'; bN.textContent='Naviguer';
+    var bC=document.createElement('button'); bC.className='btn-small'; bC.textContent='Appeler';
+    var bE=document.createElement('button'); bE.className='btn-small'; bE.textContent='Modifier';
+    (function(addr){bN.addEventListener('click',function(){if(!addr){toast('Ajoutez une adresse dans la fiche patient');return;}window.open('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(addr)+'&travelmode=driving','_blank');});})(p.adresse);
+    (function(tel){bC.addEventListener('click',function(){if(tel)window.location.href='tel:'+tel.replace(/\s/g,'');});})(p.tel);
+    (function(pid2){bE.addEventListener('click',function(){openPatientModal(pid2);});})(id);
+    ac.appendChild(bN); ac.appendChild(bC); ac.appendChild(bE);
+    el.appendChild(card);
+  });
+}
+
+function renderS(){
+  var key=dk(ST.date);
+  var dv=Object.entries(ST.visits).filter(function(e){return e[1].date===key;});
+  var done=Object.entries(ST.timers).filter(function(e){return e[1].done&&ST.visits[e[0]]&&ST.visits[e[0]].date===key;});
+  var totalSec=done.reduce(function(a,e){return a+(e[1].elapsed||0);},0);
+  var travelSec=Object.entries(ST.travel).filter(function(e){return e[1].done&&ST.visits[e[0]]&&ST.visits[e[0]].date===key;}).reduce(function(a,e){return a+(e[1].elapsed||0);},0);
+  var plannedMin=dv.reduce(function(a,e){return a+(e[1].duration||0);},0);
+  var realMin=Math.round(totalSec/60), travMin=Math.round(travelSec/60), totMin=realMin+travMin;
+  var sg = document.getElementById('stats-grid');
+  sg.innerHTML = '';
+  [
+    {label:'Visites prevues', val:String(dv.length), sub:'ce jour'},
+    {label:'Effectuees', val:String(done.length), sub:'terminees'},
+    {label:'Temps prevu', val:(plannedMin>0?fmtD(Math.floor(plannedMin/60),plannedMin%60):'-'), sub:'total journee'},
+    {label:'Temps soins', val:(realMin>0?fmtD(Math.floor(realMin/60),realMin%60):'-'), sub:'chronometres'},
+    {label:'Temps route', val:(travMin>0?fmtD(Math.floor(travMin/60),travMin%60):'-'), sub:'trajets mesures'},
+    {label:'Temps total', val:(totMin>0?fmtD(Math.floor(totMin/60),totMin%60):'-'), sub:'soins + route'}
+  ].forEach(function(item){
+    var d=document.createElement('div'); d.className='stat-card';
+    var l=document.createElement('div'); l.className='stat-label'; l.textContent=item.label;
+    var v=document.createElement('div'); v.className='stat-value'; v.style.fontSize='20px'; v.textContent=item.val;
+    var s=document.createElement('div'); s.className='stat-sub'; s.textContent=item.sub;
+    d.appendChild(l); d.appendChild(v); d.appendChild(s); sg.appendChild(d);
+  });
+  document.getElementById('nurse-stats').innerHTML='<div class="nurse-legend">'+window.NURSES.map(function(n){
+    var nv=dv.filter(function(e){return e[1].nurseId===n.id;}).length;
+    var nd=done.filter(function(e){return ST.visits[e[0]]&&ST.visits[e[0]].nurseId===n.id;}).length;
+    return '<div class="nurse-badge" style="background:'+n.colors.bg+';color:'+n.colors.color+'">'+n.name+' - '+nd+'/'+nv+' visite'+(nv!==1?'s':'')+'</div>';
+  }).join('')+'</div>';
+  var histEl=document.getElementById('history-container');
+  if(!ST.done.length){histEl.innerHTML='<div class="empty-state" style="padding:1.5rem">Les visites terminees apparaitront ici.</div>';return;}
+  histEl.innerHTML=ST.done.map(function(v){
+    var n=window.NURSES.find(function(x){return x.id===v.nurseId;})||window.NURSES[0];
+    return '<div class="history-item"><div class="visit-avatar" style="background:'+n.colors.bg+';color:'+n.colors.color+';width:34px;height:34px;font-size:12px">'+ini(v.name)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+v.name+'</div><div style="font-size:12px;color:var(--text-muted)">'+v.care+' - '+v.time+' - '+n.name+'</div></div><span class="duration-pill">'+fmt(v.elapsed)+'</span></div>';
+  }).join('');
+}
+
+document.getElementById('btn-settings').addEventListener('click',function(){
+  var list=document.getElementById('nurses-settings-list'); list.innerHTML='';
+  window.NURSES.forEach(function(n,i){
+    var div=document.createElement('div'); div.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;';
+    var hdr=document.createElement('div'); hdr.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px';
+    var av=document.createElement('div'); av.style.cssText='width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;background:'+n.colors.bg+';color:'+n.colors.color; av.textContent=n.name[0];
+    var lbl=document.createElement('span'); lbl.style.cssText='font-size:13px;font-weight:500;color:var(--text-muted)'; lbl.textContent='Infirmiere '+(i+1);
+    hdr.appendChild(av); hdr.appendChild(lbl);
+    var row=document.createElement('div'); row.className='form-row';
+    var g1=document.createElement('div'); g1.className='form-group'; g1.style.marginBottom='0';
+    var l1=document.createElement('label'); l1.textContent='Prenom';
+    var i1=document.createElement('input'); i1.type='text'; i1.id='s-name-'+n.id; i1.value=n.name; i1.placeholder='Prenom';
+    g1.appendChild(l1); g1.appendChild(i1);
+    var g2=document.createElement('div'); g2.className='form-group'; g2.style.marginBottom='0';
+    var l2=document.createElement('label'); l2.textContent='Code PIN';
+    var i2=document.createElement('input'); i2.type='text'; i2.id='s-pin-'+n.id; i2.value=n.pin; i2.maxLength=4; i2.inputMode='numeric'; i2.placeholder='1234';
+    g2.appendChild(l2); g2.appendChild(i2);
+    row.appendChild(g1); row.appendChild(g2);
+    div.appendChild(hdr); div.appendChild(row);
+    if(ST.nurse&&n.id===ST.nurse.id){
+      var hd=document.createElement('div'); hd.style.marginTop='10px';
+      var hl=document.createElement('label'); hl.textContent='Mon adresse domicile'; hl.style.cssText='display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px';
+      var hi=document.createElement('input'); hi.type='text'; hi.id='s-home'; hi.placeholder='12 rue de la Paix, 64000 Pau'; hi.value=home();
+      hi.style.cssText='width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:Inter,sans-serif;outline:none;background:white;color:var(--text)';
+      hd.appendChild(hl); hd.appendChild(hi); div.appendChild(hd);
+    }
+    list.appendChild(div);
+  });
+  document.getElementById('modal-settings').classList.add('open');
+});
+document.getElementById('btn-cancel-settings').addEventListener('click',function(){document.getElementById('modal-settings').classList.remove('open');});
+document.getElementById('btn-save-settings').addEventListener('click',function(){
+  var upd=window.NURSES.map(function(n){
+    var ne=document.getElementById('s-name-'+n.id), pe=document.getElementById('s-pin-'+n.id);
+    if(!ne||!pe) return null;
+    var nm=ne.value.trim(), pin=pe.value.trim();
+    if(!nm||pin.length!==4) return null;
+    return {name:nm,pin:pin};
+  });
+  if(upd.includes(null)){toast('Verifiez les prenoms et codes PIN (4 chiffres)');return;}
+  var he=document.getElementById('s-home');
+  if(he&&ST.nurse) localStorage.setItem('nh_'+ST.nurse.id,JSON.stringify(he.value.trim()));
+  localStorage.setItem('nurses_config',JSON.stringify(upd));
+  set(ref(db,'nurses_config'),upd);
+  window.NURSES=DN.map(function(d,i){return Object.assign({},d,upd[i]);});
+  if(ST.nurse){var cur=window.NURSES.find(function(n){return n.id===ST.nurse.id;});if(cur){ST.nurse=cur;document.getElementById('topbar-name').textContent=cur.name;}}
+  document.getElementById('modal-settings').classList.remove('open');
+  toast('Parametres enregistres'); renderP();
+});
+
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click',function(e){if(e.target===o) o.classList.remove('open');});
+});
+
+buildLogin();
+var saved=localStorage.getItem('loggedNurse');
+if(saved){
+  var nurse=window.NURSES.find(function(n){return n.id===saved;});
+  if(nurse){ST.nurse=nurse;document.getElementById('login-screen').remove();document.getElementById('app').style.display='flex';initApp();}
+}
+</script>
+</body>
+</html>
