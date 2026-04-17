@@ -706,7 +706,7 @@ window.renderPlanning = function() {
             ? `<span class="travel-time" id="tt-${travelKey}">${fmtT(ttElapsed)}</span>
                <button class="btn-travel" onclick="stopTravel('${travelKey}')">Arrivé</button>`
             : `<button class="btn-travel" onclick="startTravel('${travelKey}','${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}')">En route</button>
-               <button class="btn-map-route" onclick="showRouteMap('${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}','${v.patientName||'Patient'}')" title="Voir le tracé">🗺</button>`
+               <button class="btn-map-route" onclick="showRouteMap('${encodeURIComponent(fromAddr)}','${encodeURIComponent(toAddr)}','${encodeURIComponent(v.patientName||&quot;Patient&quot;)}')" title="Voir le tracé">🗺</button>`
         }
       </div>` : '';
     return travelBar + `<div class="visit-card ${running?'running':done?'done':''}" id="vc-${id}">
@@ -1122,9 +1122,10 @@ window.currentMapFrom = '';
 window.currentMapTo = '';
 window.mapInstance = null;
 
-window.showRouteMap = function(fromEnc, toEnc, patientName) {
+window.showRouteMap = function(fromEnc, toEnc, nameEnc) {
   const from = decodeURIComponent(fromEnc);
   const to = decodeURIComponent(toEnc);
+  const patientName = decodeURIComponent(nameEnc);
   window.currentMapFrom = from;
   window.currentMapTo = to;
   document.getElementById('map-modal-title').textContent = 'Trajet vers ' + patientName;
@@ -1353,41 +1354,48 @@ window.visitOrder = [];
 
 window.openParcours = function() {
   const key = dateKey(window.currentDate);
-  const dayVisits = Object.entries(window.visits)
-    .filter(([,v]) => v.date === key && v.patientAddress);
-  if (!dayVisits.length) { showToast('Aucune adresse renseignée pour les visites du jour'); return; }
+  const allVisits = Object.entries(window.visits).filter(([,v]) => v.date === key);
+  const withAddr = allVisits.filter(([,v]) => v.patientAddress);
 
-  // Get ordered visits
+  if (!withAddr.length) { showToast('Ajoutez des adresses aux visites pour lancer le parcours'); return; }
+
+  // Build ordered list: use manual order if set, otherwise sort by time
   let ordered = [];
   if (window.visitOrder.length) {
     window.visitOrder.forEach(id => {
       const v = window.visits[id];
-      if (v && v.date === key && v.patientAddress) ordered.push([id, v]);
+      if (v && v.date === key && v.patientAddress) ordered.push(v.patientAddress);
     });
-    // Add any not in order
-    dayVisits.forEach(([id,v]) => { if (!window.visitOrder.includes(id)) ordered.push([id,v]); });
+    withAddr.forEach(([id,v]) => {
+      if (!window.visitOrder.includes(id)) ordered.push(v.patientAddress);
+    });
   } else {
-    ordered = dayVisits.sort(([,a],[,b]) => a.time.localeCompare(b.time));
+    ordered = withAddr
+      .sort(([,a],[,b]) => a.time.localeCompare(b.time))
+      .map(([,v]) => v.patientAddress);
   }
 
-  // Build Google Maps URL with waypoints
-  const home = window.currentNurse ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })() : '';
-  const destinations = ordered.map(([,v]) => encodeURIComponent(v.patientAddress));
-  
-  let url;
-  if (destinations.length === 1) {
-    url = 'https://www.google.com/maps/dir/?api=1'
-      + (home ? '&origin=' + encodeURIComponent(home) : '')
-      + '&destination=' + destinations[0];
-  } else {
-    const last = destinations.pop();
-    url = 'https://www.google.com/maps/dir/?api=1'
-      + (home ? '&origin=' + encodeURIComponent(home) : '')
-      + '&destination=' + last
-      + '&waypoints=' + destinations.join('|');
-  }
-  
+  // Get home address as starting point
+  const home = window.currentNurse
+    ? (function(){ try { return JSON.parse(localStorage.getItem('nurse_home_'+window.currentNurse.id)||'""') || ''; } catch(e) { return ''; } })()
+    : '';
+
+  if (!home) { showToast('Ajoutez votre adresse domicile dans les paramètres ⚙️'); return; }
+
+  // Google Maps: origin=home, destination=last patient, waypoints=all patients in between
+  // Route: home -> p1 -> p2 -> ... -> pN
+  const origin = encodeURIComponent(home);
+  const destination = encodeURIComponent(ordered[ordered.length - 1]);
+  const waypoints = ordered.slice(0, -1).map(a => encodeURIComponent(a)).join('|');
+
+  let url = 'https://www.google.com/maps/dir/?api=1'
+    + '&origin=' + origin
+    + '&destination=' + destination
+    + (waypoints ? '&waypoints=' + waypoints : '')
+    + '&travelmode=driving';
+
   window.open(url, '_blank');
+  showToast('Parcours lancé — ' + ordered.length + ' arrêt' + (ordered.length > 1 ? 's' : ''));
 };
 
 // ── Drag and drop reorder ──
