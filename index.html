@@ -1129,8 +1129,7 @@ window.showRouteMap = function(fromEnc, toEnc, nameEnc) {
   window.currentMapFrom = from;
   window.currentMapTo = to;
   document.getElementById('map-modal-title').textContent = 'Trajet vers ' + patientName;
-  document.getElementById('map-info').textContent = 'De : ' + from + '
-Vers : ' + to;
+  document.getElementById('map-info').textContent = 'De : ' + from + ' vers ' + to;
   document.getElementById('modal-map').classList.add('open');
   // Wait for modal to be visible then init map
   setTimeout(() => initRouteMap(from, to), 150);
