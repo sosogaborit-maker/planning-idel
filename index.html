@@ -812,10 +812,20 @@ function showConflictWarning(conflicts, nextSlot) {
   var warn = document.createElement('div');
   warn.id = 'conflict-warning';
   warn.style.cssText = 'background:var(--amber-light);border:1px solid rgba(133,79,11,0.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--amber);';
-  warn.innerHTML = '<strong>Attention :</strong> ' + msg + '<br><button id="btn-use-slot" style="margin-top:6px;background:var(--amber);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif">Utiliser ' + nextSlot + '</button>';
+  var warnStrong = document.createElement('strong');
+  warnStrong.textContent = 'Attention : ';
+  var warnText = document.createTextNode(msg);
+  var warnBr = document.createElement('br');
+  var warnBtn = document.createElement('button');
+  warnBtn.textContent = 'Utiliser ' + nextSlot;
+  warnBtn.style.cssText = 'margin-top:6px;background:var(--amber);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:Inter,sans-serif';
+  warn.appendChild(warnStrong);
+  warn.appendChild(warnText);
+  warn.appendChild(warnBr);
+  warn.appendChild(warnBtn);
   var firstGroup = document.querySelector('#modal-visit .form-group');
   firstGroup.parentNode.insertBefore(warn, firstGroup);
-  document.getElementById('btn-use-slot').addEventListener('click', function() {
+  warnBtn.addEventListener('click', function() {
     document.getElementById('v-time').value = nextSlot;
     warn.remove();
   });
@@ -995,17 +1005,39 @@ function renderS(){
     var s=document.createElement('div'); s.className='stat-sub'; s.textContent=item.sub;
     d.appendChild(l); d.appendChild(v); d.appendChild(s); sg.appendChild(d);
   });
-  document.getElementById('nurse-stats').innerHTML='<div class="nurse-legend">'+window.NURSES.map(function(n){
+  var nsEl=document.getElementById('nurse-stats');
+  nsEl.innerHTML='';
+  var nsLeg=document.createElement('div'); nsLeg.className='nurse-legend';
+  window.NURSES.forEach(function(n){
     var nv=dv.filter(function(e){return e[1].nurseId===n.id;}).length;
     var nd=done.filter(function(e){return ST.visits[e[0]]&&ST.visits[e[0]].nurseId===n.id;}).length;
-    return '<div class="nurse-badge" style="background:'+n.colors.bg+';color:'+n.colors.color+'">'+n.name+' - '+nd+'/'+nv+' visite'+(nv!==1?'s':'')+'</div>';
-  }).join('')+'</div>';
+    var badge=document.createElement('div'); badge.className='nurse-badge';
+    badge.style.background=n.colors.bg; badge.style.color=n.colors.color;
+    badge.textContent=n.name+' - '+nd+'/'+nv+' visite'+(nv!==1?'s':'');
+    nsLeg.appendChild(badge);
+  });
+  nsEl.appendChild(nsLeg);
   var histEl=document.getElementById('history-container');
-  if(!ST.done.length){histEl.innerHTML='<div class="empty-state" style="padding:1.5rem">Les visites terminees apparaitront ici.</div>';return;}
-  histEl.innerHTML=ST.done.map(function(v){
+  histEl.innerHTML='';
+  if(!ST.done.length){
+    var emp=document.createElement('div'); emp.className='empty-state'; emp.style.padding='1.5rem';
+    emp.textContent='Les visites terminees apparaitront ici.';
+    histEl.appendChild(emp); return;
+  }
+  ST.done.forEach(function(v){
     var n=window.NURSES.find(function(x){return x.id===v.nurseId;})||window.NURSES[0];
-    return '<div class="history-item"><div class="visit-avatar" style="background:'+n.colors.bg+';color:'+n.colors.color+';width:34px;height:34px;font-size:12px">'+ini(v.name)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+v.name+'</div><div style="font-size:12px;color:var(--text-muted)">'+v.care+' - '+v.time+' - '+n.name+'</div></div><span class="duration-pill">'+fmt(v.elapsed)+'</span></div>';
-  }).join('');
+    var item=document.createElement('div'); item.className='history-item';
+    var av=document.createElement('div'); av.className='visit-avatar';
+    av.style.cssText='background:'+n.colors.bg+';color:'+n.colors.color+';width:34px;height:34px;font-size:12px';
+    av.textContent=ini(v.name);
+    var info=document.createElement('div'); info.style.flex='1';
+    var nm=document.createElement('div'); nm.style.cssText='font-size:13px;font-weight:500'; nm.textContent=v.name;
+    var sub=document.createElement('div'); sub.style.cssText='font-size:12px;color:var(--text-muted)'; sub.textContent=v.care+' - '+v.time+' - '+n.name;
+    var pill=document.createElement('span'); pill.className='duration-pill'; pill.textContent=fmt(v.elapsed);
+    info.appendChild(nm); info.appendChild(sub);
+    item.appendChild(av); item.appendChild(info); item.appendChild(pill);
+    histEl.appendChild(item);
+  });
 }
 
 document.getElementById('btn-settings').addEventListener('click',function(){
