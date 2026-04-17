@@ -716,7 +716,7 @@ function checkConflict(nurseId, date, startTime, durationMin, excludeId) {
   return conflicts;
 }
 
-function findNextSlot(nurseId, date, durationMin) {
+function findNextSlot(nurseId, date, startTime, durationMin) {
   var slots = [];
   Object.entries(ST.visits).forEach(function(e) {
     var v = e[1];
@@ -725,7 +725,9 @@ function findNextSlot(nurseId, date, durationMin) {
     slots.push({ start: h * 60 + m, end: h * 60 + m + (v.duration || 30) });
   });
   slots.sort(function(a, b) { return a.start - b.start; });
-  var candidate = 8 * 60; // start at 8h00
+  // Start from the requested time, not 8h00
+  var sh = parseInt(startTime.split(':')[0]), sm = parseInt(startTime.split(':')[1]);
+  var candidate = sh * 60 + sm;
   for (var i = 0; i < slots.length; i++) {
     if (candidate + durationMin <= slots[i].start) break;
     if (slots[i].end > candidate) candidate = slots[i].end;
@@ -766,7 +768,7 @@ document.getElementById('btn-save-visit').addEventListener('click',function(){
   // Check conflicts for this nurse
   var conflicts = checkConflict(nurseId, dateKey2, time, durationMin, ST.editV);
   if (conflicts.length > 0) {
-    var nextSlot = findNextSlot(nurseId, dateKey2, durationMin);
+    var nextSlot = findNextSlot(nurseId, dateKey2, time, durationMin);
     showConflictWarning(conflicts, nextSlot);
     return;
   }
